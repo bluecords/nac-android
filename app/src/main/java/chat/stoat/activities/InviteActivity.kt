@@ -60,7 +60,7 @@ import chat.stoat.core.model.data.STOAT_FILES
 import chat.stoat.core.model.schemas.Invite
 import chat.stoat.core.model.schemas.InviteJoined
 import chat.stoat.core.model.util.RsResult
-import chat.stoat.ui.theme.StoatTheme
+import chat.stoat.ui.theme.NACTheme
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import kotlinx.coroutines.launch
@@ -152,7 +152,7 @@ fun InviteScreen(
     val inviteValid = if (viewModel.loadingFinished) (viewModel.inviteResult?.ok ?: false) else null
     val invite = viewModel.inviteResult?.value
 
-    StoatTheme(
+    NACTheme(
         requestedTheme = LoadedSettings.theme,
         requestedUserInterfaceFont = LoadedSettings.font,
         colourOverrides = SyncedSettings.android.colourOverrides

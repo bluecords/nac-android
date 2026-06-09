@@ -198,7 +198,7 @@ fun getColorScheme(
 
 @SuppressLint("NewApi")
 @Composable
-fun StoatTheme(
+fun NACTheme(
     requestedTheme: Theme,
     requestedUserInterfaceFont: UserInterfaceFont,
     colourOverrides: OverridableColourScheme? = null,

@@ -121,9 +121,8 @@ fun AboutScreen(navController: NavController, viewModel: AboutViewModel = viewMo
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(R.drawable.stoat_logo_white),
+                    painter = painterResource(R.drawable.nac_logo),
                     contentDescription = stringResource(R.string.about_full_name),
-                    colorFilter = ColorFilter.tint(LocalContentColor.current),
                     modifier = Modifier
                         .width(250.dp)
                 )
@@ -234,7 +233,7 @@ fun AboutScreen(navController: NavController, viewModel: AboutViewModel = viewMo
                                     scope.launch {
                                         clipboard.setClipEntry(
                                             ClipData.newPlainText(
-                                                "Stoat Debug Information",
+                                                "NAC Debug Information",
                                                 StoatJson.encodeToString(viewModel.debugInfo)
                                             ).toClipEntry()
                                         )

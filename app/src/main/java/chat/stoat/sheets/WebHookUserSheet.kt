@@ -65,7 +65,7 @@ fun WebHookUserSheet(modifier: Modifier = Modifier) {
         )
         Button(
             onClick = {
-                viewUrlInBrowser(context, "https://support.stoat.chat/kb/server-management/integrations-and-bots/webhooks")
+                viewUrlInBrowser(context, "https://nac.social")
             },
             modifier = Modifier
                 .fillMaxWidth()

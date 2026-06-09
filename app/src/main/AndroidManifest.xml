@@ -34,7 +34,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:name=".StoatApplication"
-        android:theme="@style/Theme.Stoat"
+        android:theme="@style/Theme.NAC"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="tiramisu">
         <provider
@@ -79,7 +79,7 @@
             android:exported="true"
             android:configChanges="orientation|screenSize|colorMode"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.Stoat">
+            android:theme="@style/Theme.NAC">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -89,7 +89,7 @@
 
         <activity
             android:name=".activities.InviteActivity"
-            android:theme="@style/Theme.Stoat"
+            android:theme="@style/Theme.NAC"
             android:exported="true">
             <!-- Revolt invite links -->
             <intent-filter android:autoVerify="true">
@@ -133,6 +133,7 @@
                 <data android:scheme="https" />
 
                 <data android:host="stoat.chat" />
+                <data android:host="nac.social" />
 
                 <data android:pathPrefix="/invite/" />
             </intent-filter>
@@ -157,7 +158,7 @@
 
         <activity
             android:name=".activities.ShareTargetActivity"
-            android:theme="@style/Theme.Stoat"
+            android:theme="@style/Theme.NAC"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -173,17 +174,17 @@
 
         <activity
             android:name=".activities.media.ImageViewActivity"
-            android:theme="@style/Theme.Stoat" />
+            android:theme="@style/Theme.NAC" />
 
         <activity
             android:name=".activities.media.VideoViewActivity"
             android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.Stoat" />
+            android:theme="@style/Theme.NAC" />
 
         <activity
             android:name=".activities.voice.IncomingActivity"
             android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.Stoat" />
+            android:theme="@style/Theme.NAC" />
 
         <!-- Backport photo picker via Google Play Services -->
         <service

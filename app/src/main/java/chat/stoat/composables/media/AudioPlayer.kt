@@ -118,7 +118,7 @@ fun AudioPlayer(url: String, filename: String, contentType: String) {
                     ContentValues().apply {
                         put(MediaStore.Audio.Media.DISPLAY_NAME, filename)
                         put(MediaStore.Audio.Media.MIME_TYPE, contentType)
-                        put(MediaStore.Audio.Media.RELATIVE_PATH, "Music/Stoat")
+                        put(MediaStore.Audio.Media.RELATIVE_PATH, "Music/NAC")
                         put(MediaStore.Audio.Media.IS_PENDING, 1)
                     }
                 )

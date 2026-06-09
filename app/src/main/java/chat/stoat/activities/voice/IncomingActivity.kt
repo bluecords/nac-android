@@ -61,7 +61,7 @@ import chat.stoat.R
 import chat.stoat.composables.generic.Presence
 import chat.stoat.composables.generic.RemoteImage
 import chat.stoat.composables.generic.presenceColour
-import chat.stoat.ui.theme.StoatTheme
+import chat.stoat.ui.theme.NACTheme
 import chat.stoat.ui.theme.Theme
 import chat.stoat.ui.theme.getDefaultFont
 import kotlinx.coroutines.delay
@@ -81,7 +81,7 @@ class IncomingActivity : ComponentActivity() {
 
 @Composable
 fun IncomingCall() {
-    StoatTheme(
+    NACTheme(
         requestedTheme = if (isSystemInDarkTheme()) Theme.Default else Theme.Light,
         requestedUserInterfaceFont = getDefaultFont()
     ) {

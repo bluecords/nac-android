@@ -68,7 +68,7 @@ import chat.stoat.composables.screens.chat.drawer.DMOrGroupItem
 import chat.stoat.core.model.schemas.ChannelType
 import chat.stoat.persistence.KVStorage
 import chat.stoat.screens.chat.views.channel.ChannelScreenActivePane
-import chat.stoat.ui.theme.StoatTheme
+import chat.stoat.ui.theme.NACTheme
 import io.ktor.http.ContentType
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -274,7 +274,7 @@ fun ShareTargetScreen(
     var channelSearchContent by remember { mutableStateOf("") }
     var selectedChannel by rememberSaveable { mutableStateOf<String?>(null) }
 
-    StoatTheme(
+    NACTheme(
         requestedTheme = LoadedSettings.theme,
         requestedUserInterfaceFont = LoadedSettings.font,
         colourOverrides = SyncedSettings.android.colourOverrides

@@ -47,7 +47,7 @@ import chat.stoat.api.settings.LoadedSettings
 import chat.stoat.api.settings.SyncedSettings
 import chat.stoat.core.model.data.STOAT_FILES
 import chat.stoat.providers.getAttachmentContentUri
-import chat.stoat.ui.theme.StoatTheme
+import chat.stoat.ui.theme.NACTheme
 import io.ktor.client.request.get
 import io.ktor.client.statement.readBytes
 import kotlinx.coroutines.launch
@@ -182,7 +182,7 @@ fun ImageViewScreen(resource: AutumnResource, onClose: () -> Unit = {}) {
         }
     }
 
-    StoatTheme(
+    NACTheme(
         requestedTheme = LoadedSettings.theme,
         requestedUserInterfaceFont = LoadedSettings.font,
         colourOverrides = SyncedSettings.android.colourOverrides

@@ -125,7 +125,7 @@ import chat.stoat.screens.settings.SettingsScreen
 import chat.stoat.screens.settings.channel.ChannelSettingsHome
 import chat.stoat.screens.settings.channel.ChannelSettingsOverview
 import chat.stoat.screens.settings.channel.ChannelSettingsPermissions
-import chat.stoat.ui.theme.StoatTheme
+import chat.stoat.ui.theme.NACTheme
 import com.google.android.material.color.DynamicColors
 import io.ktor.client.request.get
 import io.sentry.android.core.SentryAndroid
@@ -476,7 +476,7 @@ fun AppEntrypoint(
 
     val navController = rememberNavController()
 
-    StoatTheme(
+    NACTheme(
         requestedTheme = LoadedSettings.theme,
         requestedUserInterfaceFont = LoadedSettings.font,
         colourOverrides = SyncedSettings.android.colourOverrides
