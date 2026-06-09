@@ -407,7 +407,7 @@ fun SettingsScreen(
                                     InviteActivity::class.java
                                 ).setAction(Intent.ACTION_VIEW)
 
-                                intent.data = "https://nac.social".toUri()
+                                intent.data = "https://github.com/bluecords/nac-android/issues".toUri()
                                 context.startActivity(intent)
                             }
                     )

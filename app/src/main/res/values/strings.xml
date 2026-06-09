@@ -818,7 +818,7 @@
     <string name="settings_notifications_system_description">Manage notification permissions and preferences from your device\'s system settings.</string>
 
     <string name="settings_feedback">Feedback</string>
-    <string name="settings_feedback_description">Join NAC to give feedback or suggestions and report bugs.</string>
+    <string name="settings_feedback_description">Report bugs, suggest features, or leave feedback on our GitHub.</string>
 
     <string name="settings_changelog">What\'s New</string>
 
