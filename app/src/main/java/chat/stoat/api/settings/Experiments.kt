@@ -7,10 +7,10 @@ import chat.stoat.BuildConfig
 import chat.stoat.StoatApplication
 import chat.stoat.persistence.KVStorage
 
-class ExperimentInstance(default: Boolean) {
+class ExperimentInstance(default: Boolean, private val force: Boolean = false) {
     private var _isEnabled by mutableStateOf(default)
     val isEnabled: Boolean
-        get() = LoadedSettings.experimentsEnabled && _isEnabled
+        get() = force || (LoadedSettings.experimentsEnabled && _isEnabled)
 
     fun setEnabled(enabled: Boolean) {
         _isEnabled = enabled
@@ -28,7 +28,8 @@ class ExperimentInstance(default: Boolean) {
 object Experiments {
     val usePolar = ExperimentInstance(false)
     val enableServerIdentityOptions = ExperimentInstance(false)
-    val useVoiceChats2p0 = ExperimentInstance(false)
+    // NAC: voice/video is a core feature, not an experiment — always on.
+    val useVoiceChats2p0 = ExperimentInstance(true, force = true)
 
     suspend fun hydrateWithKv() {
         val kvStorage = KVStorage(StoatApplication.instance)

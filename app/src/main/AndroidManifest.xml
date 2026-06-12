@@ -13,12 +13,8 @@
         android:maxSdkVersion="29"
         tools:ignore="ScopedStorage" />
 
-    <!--
-      *  FIXME LiveKit is temporarily not included, hence the following is commented out.
-
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
-    -->
 
     <uses-feature
         android:name="android.hardware.camera"

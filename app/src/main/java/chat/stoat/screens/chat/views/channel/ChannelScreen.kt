@@ -1,8 +1,10 @@
 package chat.stoat.screens.chat.views.channel
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentValues
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Environment
@@ -23,6 +25,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -323,7 +326,7 @@ fun ChannelScreen(
         }
     }
 
-    val openCameraCallback = cb@{
+    val launchCameraCapture = cb@{
         // Create a new content URI to store the captured image.
         val contentResolver =
             context.contentResolver
@@ -372,6 +375,25 @@ fun ChannelScreen(
                 ),
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+
+    // Since the manifest declares CAMERA (for voice/video calls), the system
+    // camera intent throws SecurityException unless the runtime permission is
+    // granted first.
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) launchCameraCapture()
+    }
+
+    val openCameraCallback = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            launchCameraCapture()
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 

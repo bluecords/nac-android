@@ -1,21 +1,5 @@
 package chat.stoat.composables.voice
 
-import androidx.compose.runtime.Composable
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-
-class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {}
-
-@Composable
-fun VoiceSheet(
-    channelId: String,
-    onDisconnect: () -> Unit,
-    viewModel: VoiceSheetViewModel = viewModel()
-) {
-}
-
-/*
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -171,34 +155,7 @@ fun VoiceSheet(
         val trackRefs by rememberTracks(passedRoom = room)
 
         Column {
-            LazyColumn(
-                modifier = Modifier.animateContentSize(
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        easing = LinearOutSlowInEasing
-                    )
-                )
-            ) {
-                val voiceStates = StoatAPI.voiceStateCache[viewModel.channelId]
-                items(voiceStates?.participants?.size ?: 0) { index ->
-                    val participantState = voiceStates?.participants[index]
-                    participantState?.let {
-                        VoiceParticipant(
-                            state = participantState,
-                            channelId = viewModel.channelId,
-                            speaking = activeSpeakers.any { it.identity?.value == participantState.id }
-                        )
-                    }
-                }
-                items(trackRefs.size) { index ->
-                    VideoTrackView(
-                        trackReference = trackRefs[index],
-                        room = room,
-                        modifier = Modifier.fillParentMaxHeight(0.5f)
-                    )
-                }
-                item(key = "status") {
-                    var showStatus by remember { mutableStateOf(true) }
+            var showStatus by remember { mutableStateOf(true) }
                     LaunchedEffect(roomState) {
                         if (roomState == Room.State.CONNECTED) {
                             delay(1000)
@@ -287,8 +244,14 @@ fun VoiceSheet(
                             }
                         }
                     }
-                }
-            }
+
+            NacCallLayout(
+                room = room,
+                channelId = viewModel.channelId,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .weight(1f)
+            )
 
             AnimatedVisibility(viewModel.errorResource != null) {
                 viewModel.errorResource?.let { resId ->
@@ -341,10 +304,9 @@ fun VoiceSheet(
                 Button(
                     onClick = {
                         scope.launch {
-                            room.localParticipant.setCameraEnabled(!isMicOn)
+                            room.localParticipant.setCameraEnabled(!isCameraOn)
                         }
                     },
-                    enabled = false,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isCameraOn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = if (isCameraOn) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
@@ -406,4 +368,3 @@ fun VoiceSheet(
         }
     }
 }
-*/
