@@ -53,17 +53,28 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import chat.stoat.BuildConfig
 import chat.stoat.R
+import chat.stoat.api.StoatHttp
 import chat.stoat.api.StoatJson
 import chat.stoat.api.routes.misc.getRootRoute
 import chat.stoat.core.model.data.STOAT_BASE
 import chat.stoat.internals.Platform
 import chat.stoat.settings.dsl.SettingsPage
 import chat.stoat.ui.theme.FragmentMono
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
+
+data class UpdateInfo(val versionName: String, val url: String)
 
 class AboutViewModel : ViewModel() {
     var debugInfo by mutableStateOf<Map<String, String>>(emptyMap())
+        private set
+
+    var updateAvailable by mutableStateOf<UpdateInfo?>(null)
         private set
 
     init {
@@ -81,6 +92,19 @@ class AboutViewModel : ViewModel() {
                         }
                     } (${Build.MODEL})"
                 )
+            }
+        }
+        viewModelScope.launch {
+            runCatching {
+                val json = StoatHttp.get("https://get.nac.social/version.json").bodyAsText()
+                StoatJson.parseToJsonElement(json).jsonObject.let { obj ->
+                    val remote = obj["versionCode"]?.jsonPrimitive?.int ?: return@let
+                    val name = obj["versionName"]?.jsonPrimitive?.content ?: return@let
+                    val url = obj["url"]?.jsonPrimitive?.content ?: "https://get.nac.social"
+                    if (remote > BuildConfig.VERSION_CODE) {
+                        updateAvailable = UpdateInfo(name, url)
+                    }
+                }
             }
         }
     }
@@ -114,6 +138,40 @@ fun AboutScreen(navController: NavController, viewModel: AboutViewModel = viewMo
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            viewModel.updateAvailable?.let { update ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .clip(MaterialTheme.shapes.large)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable {
+                            CustomTabsIntent.Builder().build()
+                                .launchUrl(context, Uri.parse(update.url))
+                        }
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Update available — ${update.versionName}",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Tap to download",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                    Icon(
+                        painter = painterResource(R.drawable.ic_chevron_forward_24dp),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
+                    )
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .padding(top = 16.dp)
