@@ -72,10 +72,20 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = buildproperty("signing.store.file")?.let { rootProject.file(it) }
+            storePassword = buildproperty("signing.store.password", "NAC_SIGNING_STORE_PASSWORD")
+            keyAlias = buildproperty("signing.key.alias", "NAC_SIGNING_KEY_ALIAS")
+            keyPassword = buildproperty("signing.key.password", "NAC_SIGNING_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

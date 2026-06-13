@@ -49,6 +49,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import chat.stoat.BuildConfig
 import chat.stoat.R
 import chat.stoat.api.StoatJson
@@ -294,6 +296,43 @@ fun AboutScreen(navController: NavController, viewModel: AboutViewModel = viewMo
                         contentDescription = null,
                         tint = LocalContentColor.current.copy(alpha = 0.5f)
                     )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                horizontalAlignment = Alignment.Start
+            ) {
+                listOf(
+                    Pair(stringResource(R.string.community_guidelines), "https://guidelines.nac.social"),
+                    Pair(stringResource(R.string.terms_of_service), "https://terms.nac.social"),
+                    Pair(stringResource(R.string.privacy_policy), "https://privacy.nac.social"),
+                ).forEach { (label, url) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .clickable {
+                                CustomTabsIntent.Builder().build()
+                                    .launchUrl(context, Uri.parse(url))
+                            }
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            painter = painterResource(R.drawable.ic_chevron_forward_24dp),
+                            contentDescription = null,
+                            tint = LocalContentColor.current.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
 

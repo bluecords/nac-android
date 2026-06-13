@@ -2,3 +2,10 @@ sentry.dsn=
 sentry.upload_mappings=true
 build.debug.app_name=
 build.flavour_id=ZZUU
+
+# Release signing — set these to build a signed APK
+# signing.store.file is relative to the repo root
+signing.store.file=nac-release.jks
+signing.store.password=
+signing.key.alias=nac-release
+signing.key.password=

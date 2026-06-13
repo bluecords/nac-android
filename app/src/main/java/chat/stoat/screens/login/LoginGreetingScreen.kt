@@ -182,15 +182,15 @@ fun LoginGreetingScreen(navController: NavController) {
             ) {
                 Weblink(
                     text = stringResource(R.string.terms_of_service),
-                    url = "$STOAT_MARKETING/terms"
+                    url = "https://terms.nac.social"
                 )
                 Weblink(
                     text = stringResource(R.string.privacy_policy),
-                    url = "$STOAT_MARKETING/privacy"
+                    url = "https://privacy.nac.social"
                 )
                 Weblink(
                     text = stringResource(R.string.community_guidelines),
-                    url = "$STOAT_MARKETING/aup"
+                    url = "https://guidelines.nac.social"
                 )
                 if (BuildConfig.DEBUG) {
                     AnyLink(

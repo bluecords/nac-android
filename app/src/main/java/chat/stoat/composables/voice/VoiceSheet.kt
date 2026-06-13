@@ -29,6 +29,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import android.content.Intent
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,10 +44,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import chat.stoat.R
+import chat.stoat.services.VoiceCallService
 import chat.stoat.api.StoatAPI
 import chat.stoat.api.routes.misc.Root
 import chat.stoat.api.routes.misc.getRootRoute
@@ -83,6 +86,10 @@ class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {
 
     var errorResource by mutableStateOf<Int?>(null)
         private set
+
+    fun setConnectTimeout() {
+        errorResource = R.string.voice_error_connect_timeout
+    }
 
     suspend fun getVoiceToken() {
         errorResource = null
@@ -138,6 +145,7 @@ fun VoiceSheet(
     }
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     RoomScope(
         url = viewModel.voiceLkNode,
@@ -162,6 +170,23 @@ fun VoiceSheet(
                             showStatus = false
                         } else {
                             showStatus = true
+                        }
+                    }
+
+                    LaunchedEffect(roomState) {
+                        if (roomState == Room.State.CONNECTING) {
+                            delay(20_000)
+                            viewModel.setConnectTimeout()
+                            onDisconnect()
+                        }
+                    }
+
+                    LaunchedEffect(roomState) {
+                        val intent = Intent(context, VoiceCallService::class.java)
+                        when (roomState) {
+                            Room.State.CONNECTED -> context.startForegroundService(intent)
+                            Room.State.DISCONNECTED -> context.stopService(intent)
+                            else -> {}
                         }
                     }
 

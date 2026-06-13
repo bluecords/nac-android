@@ -643,6 +643,9 @@
     <string name="voice_error_not_supported">Voice channels are not available at the moment.</string>
     <string name="voice_error_no_nodes">All voice nodes are unavailable at the moment. Please try again later.</string>
     <string name="voice_error_generic">An error occurred. Please try again later.</string>
+    <string name="voice_error_connect_timeout">Connection timed out. Please try again.</string>
+    <string name="voice_call_notification_title">Voice call active</string>
+    <string name="voice_call_notification_body">Tap to return to NAC</string>
 
     <string name="voice_muted">Muted</string>
     <string name="voice_deafened">Deafened</string>
