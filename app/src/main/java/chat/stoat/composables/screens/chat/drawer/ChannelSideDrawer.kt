@@ -395,21 +395,24 @@ fun ChannelSideDrawer(
                 }
             }
 
-            item(key = "add_server") {
-                Box(
-                    Modifier
-                        .padding(8.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            onShowAddServerSheet()
-                        }
-                        .size(48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_add_24dp),
-                        contentDescription = stringResource(R.string.server_plus_alt)
-                    )
+            val nacAdminIds = setOf("01KTCXW0MKQ5RHFY4783XZS5TV", "01KTHZVNE3R6KD82WZWGCKY90W")
+            if (StoatAPI.selfId in nacAdminIds) {
+                item(key = "add_server") {
+                    Box(
+                        Modifier
+                            .padding(8.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                onShowAddServerSheet()
+                            }
+                            .size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_add_24dp),
+                            contentDescription = stringResource(R.string.server_plus_alt)
+                        )
+                    }
                 }
             }
 

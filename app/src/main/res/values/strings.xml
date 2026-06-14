@@ -14,8 +14,8 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="community_guidelines">Community Guidelines</string>
 
-    <string name="login_onboarding_heading">Find your community, connect with the world.</string>
-    <string name="login_onboarding_body">NAC is one of the best ways to stay connected with your friends and community, anywhere, anytime.</string>
+    <string name="login_onboarding_heading">NAC — Naked as Created</string>
+    <string name="login_onboarding_body">A private community of Jesus Followers built around naturism and authentic human connection.</string>
 
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -822,6 +822,12 @@
 
     <string name="settings_feedback">Feedback</string>
     <string name="settings_feedback_description">Report bugs, suggest features, or leave feedback on our GitHub.</string>
+    <string name="settings_feedback_feature_request">Feature Request</string>
+    <string name="settings_feedback_feature_request_description">Suggest a new feature or improvement</string>
+    <string name="settings_feedback_general">General Feedback</string>
+    <string name="settings_feedback_general_description">Share thoughts about your experience</string>
+    <string name="settings_feedback_bug">Report a Bug</string>
+    <string name="settings_feedback_bug_description">Something not working as expected</string>
 
     <string name="settings_changelog">What\'s New</string>
 
