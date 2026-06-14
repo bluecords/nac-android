@@ -109,4 +109,4 @@
     public <fields>;
 }
 
--keep class chat.stoat.ndk.AstNode { *; }
+-keep class nac.chat.ndk.AstNode { *; }

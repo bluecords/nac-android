@@ -13,7 +13,7 @@ kotlin {
     }
 }
 android {
-    namespace = "chat.stoat.core.model"
+    namespace = "nac.chat.core.model"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

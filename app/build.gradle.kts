@@ -57,14 +57,14 @@ fun buildproperty(propertyName: String, fallbackEnv: String? = null): String? {
 
 android {
     compileSdk = libs.versions.compileSdk.get().toInt()
-    namespace = "chat.stoat"
+    namespace = "nac.chat"
 
     defaultConfig {
-        applicationId = "chat.revolt"
+        applicationId = "nac.chat"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = Integer.parseInt("001_006_001".replace("_", ""), 10)
-        versionName = "1.6.1"
+        versionCode = Integer.parseInt("001_006_003".replace("_", ""), 10)
+        versionName = "1.6.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -314,7 +314,7 @@ aboutLibraries {
 sqldelight {
     databases {
         create("Database") {
-            packageName.set("chat.stoat.persistence")
+            packageName.set("nac.chat.persistence")
         }
     }
 }
