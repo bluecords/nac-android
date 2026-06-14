@@ -63,8 +63,8 @@ android {
         applicationId = "nac.chat"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = Integer.parseInt("001_006_003".replace("_", ""), 10)
-        versionName = "1.6.3"
+        versionCode = Integer.parseInt("001_006_005".replace("_", ""), 10)
+        versionName = "1.6.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
