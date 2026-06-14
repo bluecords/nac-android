@@ -882,7 +882,7 @@ fun ChatRouterScreen(
                             onShowAddServerSheet = {
                                 showAddServerSheet = true
                             },
-                            showSettingsButton = isTouchExplorationEnabled,
+                            showSettingsButton = true,
                             onOpenSettings = {
                                 topNav.navigate("settings")
                             },
@@ -926,7 +926,7 @@ fun ChatRouterScreen(
                                 onShowAddServerSheet = {
                                     showAddServerSheet = true
                                 },
-                                showSettingsButton = isTouchExplorationEnabled,
+                                showSettingsButton = true,
                                 onOpenSettings = {
                                     topNav.navigate("settings")
                                 },
