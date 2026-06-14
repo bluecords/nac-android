@@ -40,6 +40,7 @@ import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.internals.PermissionBit
 import nac.chat.api.internals.Roles
+import nac.chat.api.internals.has
 import nac.chat.api.routes.server.leaveOrDeleteServer
 import nac.chat.composables.generic.SheetButton
 import nac.chat.composables.markdown.prose.ChatMarkdown
