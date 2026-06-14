@@ -461,6 +461,7 @@ fun ChannelScreen(
     // </editor-fold>
     // <editor-fold desc="Sheets">
     var channelInfoSheetShown by remember { mutableStateOf(false) }
+    LaunchedEffect(channelId) { channelInfoSheetShown = false }
     if (channelInfoSheetShown) {
         val channelInfoSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
