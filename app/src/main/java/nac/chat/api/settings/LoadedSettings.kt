@@ -33,7 +33,7 @@ object LoadedSettings {
 
     fun hydrateWithSettings(settings: SyncedSettings) {
         this.theme = settings.android.theme?.let {
-            if (it == "Revolt") Theme.Default else Theme.valueOf(it)
+            Theme.valueOf(it)
         } ?: getDefaultTheme()
         this.messageReplyStyle =
             settings.android.messageReplyStyle?.let { MessageReplyStyle.valueOf(it) }
