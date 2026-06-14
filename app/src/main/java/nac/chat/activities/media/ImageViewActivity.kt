@@ -145,7 +145,7 @@ fun ImageViewScreen(resource: AutumnResource, onClose: () -> Unit = {}) {
                     ContentValues().apply {
                         put(MediaStore.Images.Media.DISPLAY_NAME, resource.filename)
                         put(MediaStore.Images.Media.MIME_TYPE, resource.contentType)
-                        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Revolt")
+                        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/NAC")
                         put(MediaStore.Images.Media.IS_PENDING, 1)
                     }
                 )
