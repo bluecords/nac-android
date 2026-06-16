@@ -75,6 +75,7 @@ fun MessageContextSheet(
     var showShareSheet by remember { mutableStateOf(false) }
     var showReactSheet by remember { mutableStateOf(false) }
     var showDeleteMessageConfirmation by remember { mutableStateOf(false) }
+    var showMoveToChannelSheet by remember { mutableStateOf(false) }
 
     if (showShareSheet) {
         val shareSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -262,6 +263,23 @@ fun MessageContextSheet(
         }
     }
 
+    if (showMoveToChannelSheet) {
+        val moveSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+        ModalBottomSheet(
+            sheetState = moveSheetState,
+            onDismissRequest = { showMoveToChannelSheet = false }
+        ) {
+            MoveToChannelSheet(
+                messageId = messageId,
+                sourceChannelId = message.channel ?: ""
+            ) {
+                moveSheetState.hide()
+                onHideSheet()
+            }
+        }
+    }
+
     if (showDeleteMessageConfirmation) {
         AlertDialog(
             onDismissRequest = {
@@ -423,15 +441,36 @@ fun MessageContextSheet(
             }
         )
 
-        if (
-            (message.channel?.let {
-                val channel = StoatAPI.channelCache[it] ?: return@let null
-                Roles.permissionFor(
-                    channel,
-                    StoatAPI.userCache[StoatAPI.selfId]
+        val hasManageMessages = (message.channel?.let {
+            val channel = StoatAPI.channelCache[it] ?: return@let null
+            Roles.permissionFor(channel, StoatAPI.userCache[StoatAPI.selfId])
+        } ?: 0) has PermissionBit.ManageMessages
+
+        if (hasManageMessages) {
+            val serverHasMultipleChannels = message.channel?.let { ch ->
+                StoatAPI.serverCache.values.find { s -> s.channels?.contains(ch) == true }
+                    ?.channels?.size ?: 0
+            } ?: 0 > 1
+
+            if (serverHasMultipleChannels) {
+                SheetButton(
+                    leadingContent = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_move_to_inbox_24dp),
+                            contentDescription = null
+                        )
+                    },
+                    headlineContent = {
+                        Text(text = "Move to channel")
+                    },
+                    onClick = {
+                        showMoveToChannelSheet = true
+                    }
                 )
-            } ?: 0) has PermissionBit.ManageMessages || message.author == StoatAPI.selfId
-        ) {
+            }
+        }
+
+        if (hasManageMessages || message.author == StoatAPI.selfId) {
             SheetButton(
                 leadingContent = {
                     Icon(
