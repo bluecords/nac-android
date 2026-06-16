@@ -43,20 +43,26 @@ import com.google.accompanist.permissions.shouldShowRationale
 fun VoicePermissionSwitch(onCancel: () -> Unit, onPermissionGranted: @Composable () -> Unit) {
     val context = LocalContext.current
 
-    var permissionState = rememberMultiplePermissionsState(
+    var rationaleShown by remember { mutableStateOf(false) }
+
+    val permissionState = rememberMultiplePermissionsState(
         listOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.CAMERA
         ),
         onPermissionsResult = {}
     )
-    var fullyRevoked = permissionState
+
+    // Only treat as permanently denied if we've already launched the request once.
+    // On first launch, Android also reports Denied+!shouldShowRationale, so without
+    // this guard we'd wrongly send the user to Settings before ever asking.
+    val fullyRevoked = rationaleShown && permissionState
         .revokedPermissions
         .any { it.status is PermissionStatus.Denied && !it.status.shouldShowRationale }
 
     if (permissionState.allPermissionsGranted) {
         onPermissionGranted()
-    } else if (permissionState.shouldShowRationale || fullyRevoked) {
+    } else {
         ModalBottomSheet(
             onDismissRequest = onCancel,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -122,7 +128,6 @@ fun VoicePermissionSwitch(onCancel: () -> Unit, onPermissionGranted: @Composable
                 Button(
                     onClick = {
                         if (fullyRevoked) {
-                            // Launch settings to allow the user to manually enable permissions
                             val intent =
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                                     data = "package:${context.packageName}".toUri()
@@ -130,81 +135,18 @@ fun VoicePermissionSwitch(onCancel: () -> Unit, onPermissionGranted: @Composable
                                 }
                             context.startActivity(intent)
                         } else {
+                            rationaleShown = true
                             permissionState.launchMultiplePermissionRequest()
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = stringResource(R.string.voice_join_permission_rationale_cta))
-                }
-            }
-        }
-    } else {
-        var rationaleShown by remember { mutableStateOf(false) }
-        if (!rationaleShown) {
-            ModalBottomSheet(
-                onDismissRequest = onCancel,
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                sheetGesturesEnabled = false,
-                dragHandle = {}
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 32.dp, vertical = 16.dp)
-                ) {
-                    Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.voice_join_permission_rationale_heading),
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        text = if (fullyRevoked)
+                            stringResource(R.string.voice_join_permission_rationale_cta_settings)
+                        else
+                            stringResource(R.string.voice_join_permission_rationale_cta)
                     )
-                    Text(
-                        text = stringResource(R.string.voice_join_permission_rationale_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(painter = painterResource(R.drawable.ic_mic_24dp), contentDescription = null)
-                        Text(
-                            text = stringResource(R.string.voice_join_permission_rationale_permission_mic),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(painter = painterResource(R.drawable.ic_videocam_24dp), contentDescription = null)
-                        Text(
-                            text = stringResource(R.string.voice_join_permission_rationale_permission_camera),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Text(
-                        text = stringResource(R.string.voice_join_permission_rationale_assurance),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Button(
-                        onClick = {
-                            rationaleShown = true
-                            permissionState.launchMultiplePermissionRequest()
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = stringResource(R.string.voice_join_permission_rationale_cta))
-                    }
                 }
             }
         }

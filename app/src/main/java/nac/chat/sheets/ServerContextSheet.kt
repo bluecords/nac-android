@@ -2,6 +2,7 @@ package nac.chat.sheets
 
 import android.content.Intent
 import android.widget.Toast
+import nac.chat.activities.ServerSettingsActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.internals.PermissionBit
@@ -45,7 +45,6 @@ import nac.chat.api.routes.server.leaveOrDeleteServer
 import nac.chat.composables.generic.SheetButton
 import nac.chat.composables.markdown.prose.ChatMarkdown
 import nac.chat.composables.screens.settings.ServerOverview
-import nac.chat.core.model.data.STOAT_WEB_APP
 import nac.chat.internals.Platform
 import kotlinx.coroutines.launch
 
@@ -184,10 +183,10 @@ fun ServerContextSheet(
                         },
                         onClick = {
                             context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    "$STOAT_WEB_APP/server/${server.id}/settings".toUri()
-                                )
+                                Intent(context, ServerSettingsActivity::class.java).apply {
+                                    putExtra(ServerSettingsActivity.EXTRA_SERVER_ID, server.id)
+                                    putExtra(ServerSettingsActivity.EXTRA_SERVER_NAME, server.name ?: "Server Settings")
+                                }
                             )
                             coroutineScope.launch { onHideSheet() }
                         }

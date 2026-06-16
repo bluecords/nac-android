@@ -39,7 +39,6 @@ import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import nac.chat.BuildConfig
 import nac.chat.R
-import nac.chat.activities.InviteActivity
 import nac.chat.api.StoatAPI
 import nac.chat.api.settings.FeatureFlags
 import nac.chat.api.settings.LoadedSettings
@@ -422,9 +421,7 @@ fun SettingsScreen(
                                         supportingContent = { Text(stringResource(R.string.settings_feedback_feature_request_description)) },
                                         modifier = Modifier.clickable {
                                             showFeedbackDialog = false
-                                            val intent = Intent(context, InviteActivity::class.java).setAction(Intent.ACTION_VIEW)
-                                            intent.data = "https://github.com/bluecords/nac-android/discussions/categories/ideas".toUri()
-                                            context.startActivity(intent)
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/bluecords/nac-android/discussions/categories/ideas".toUri()))
                                         }
                                     )
                                     ListItem(
@@ -432,9 +429,7 @@ fun SettingsScreen(
                                         supportingContent = { Text(stringResource(R.string.settings_feedback_general_description)) },
                                         modifier = Modifier.clickable {
                                             showFeedbackDialog = false
-                                            val intent = Intent(context, InviteActivity::class.java).setAction(Intent.ACTION_VIEW)
-                                            intent.data = "https://github.com/bluecords/nac-android/discussions".toUri()
-                                            context.startActivity(intent)
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/bluecords/nac-android/discussions".toUri()))
                                         }
                                     )
                                     ListItem(
@@ -442,9 +437,7 @@ fun SettingsScreen(
                                         supportingContent = { Text(stringResource(R.string.settings_feedback_bug_description)) },
                                         modifier = Modifier.clickable {
                                             showFeedbackDialog = false
-                                            val intent = Intent(context, InviteActivity::class.java).setAction(Intent.ACTION_VIEW)
-                                            intent.data = "https://github.com/bluecords/nac-android/issues".toUri()
-                                            context.startActivity(intent)
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/bluecords/nac-android/issues".toUri()))
                                         }
                                     )
                                 }

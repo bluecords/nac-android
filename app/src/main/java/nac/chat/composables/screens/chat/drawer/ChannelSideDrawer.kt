@@ -37,6 +37,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -225,29 +227,35 @@ fun ChannelSideDrawer(
                                 )
                         )
                     }
-                    UserAvatar(
-                        username = StoatAPI.userCache[StoatAPI.selfId]?.let {
-                            User.resolveDefaultName(
-                                it
-                            )
-                        }
-                            ?: "",
-                        presence = presenceFromStatus(
-                            StoatAPI.userCache[StoatAPI.selfId]?.status?.presence,
-                            StoatAPI.userCache[StoatAPI.selfId]?.online ?: false
-                        ),
-                        userId = StoatAPI.selfId ?: "",
-                        avatar = StoatAPI.userCache[StoatAPI.selfId]?.avatar,
-                        size = 48.dp,
-                        presenceSize = 16.dp,
-                        onClick = {
-                            onDestinationChanged(ChatRouterDestination.defaultForDMList)
+                    val unreadDmCount = DirectMessages.unreadDMs().size
+
+                    BadgedBox(
+                        badge = {
+                            if (unreadDmCount > 0) {
+                                Badge {
+                                    Text(if (unreadDmCount > 99) "99+" else unreadDmCount.toString())
+                                }
+                            }
                         },
-                        onLongClick = onLongPressAvatar,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .size(48.dp)
-                    )
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        UserAvatar(
+                            username = StoatAPI.userCache[StoatAPI.selfId]?.let {
+                                User.resolveDefaultName(it)
+                            } ?: "",
+                            presence = presenceFromStatus(
+                                StoatAPI.userCache[StoatAPI.selfId]?.status?.presence,
+                                StoatAPI.userCache[StoatAPI.selfId]?.online ?: false
+                            ),
+                            userId = StoatAPI.selfId ?: "",
+                            avatar = StoatAPI.userCache[StoatAPI.selfId]?.avatar,
+                            size = 48.dp,
+                            presenceSize = 16.dp,
+                            onClick = { onDestinationChanged(ChatRouterDestination.defaultForDMList) },
+                            onLongClick = onLongPressAvatar,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
                 }
             }
 

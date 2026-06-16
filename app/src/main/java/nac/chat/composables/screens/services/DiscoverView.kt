@@ -54,7 +54,7 @@ fun ColumnScope.DiscoverView() {
                     settings.userAgentString = buildUserAgent("DiscoverView")
                     settings.setSupportZoom(false)
                     settings.setSupportMultipleWindows(false)
-                    loadUrl("$STOAT_INVITES/discover/servers?embedded=true")
+                    loadUrl("https://gen225.org")
 
                     webViewClient = object : android.webkit.WebViewClient() {
                         override fun onPageFinished(view: WebView?, url: String?) {

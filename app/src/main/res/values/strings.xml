@@ -640,6 +640,7 @@
     <string name="voice_join_permission_rationale_permission_camera">Your camera, so others can see you if you want to share video</string>
     <string name="voice_join_permission_rationale_assurance">Don\'t worry, we won\'t use your microphone or camera without your permission.</string>
     <string name="voice_join_permission_rationale_cta">Grant permissions</string>
+    <string name="voice_join_permission_rationale_cta_settings">Open Settings</string>
 
     <string name="voice_error_not_supported">Voice channels are not available at the moment.</string>
     <string name="voice_error_no_nodes">All voice nodes are unavailable at the moment. Please try again later.</string>
