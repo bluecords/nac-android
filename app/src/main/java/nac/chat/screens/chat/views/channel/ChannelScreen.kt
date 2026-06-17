@@ -494,6 +494,7 @@ fun ChannelScreen(
         ) {
             MessageContextSheet(
                 messageId = messageContextSheetTarget,
+                hostScope = scope,
                 onHideSheet = {
                     messageContextSheetState.hide()
                     messageContextSheetShown = false

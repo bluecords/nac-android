@@ -46,12 +46,14 @@ import nac.chat.composables.chat.Message
 import nac.chat.composables.generic.SheetButton
 import nac.chat.core.model.data.STOAT_WEB_APP
 import nac.chat.internals.Platform
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageContextSheet(
     messageId: String,
+    hostScope: CoroutineScope,
     onHideSheet: suspend () -> Unit,
     onReportMessage: () -> Unit
 ) {
@@ -272,11 +274,12 @@ fun MessageContextSheet(
         ) {
             MoveToChannelSheet(
                 messageId = messageId,
-                sourceChannelId = message.channel ?: ""
-            ) {
-                moveSheetState.hide()
-                onHideSheet()
-            }
+                sourceChannelId = message.channel ?: "",
+                hostScope = hostScope,
+                onMoved = {
+                    hostScope.launch { onHideSheet() }
+                }
+            )
         }
     }
 

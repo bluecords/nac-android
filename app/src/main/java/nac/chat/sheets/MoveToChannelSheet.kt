@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,16 +35,17 @@ import nac.chat.api.StoatAPI
 import nac.chat.api.internals.CategorisedChannelList
 import nac.chat.api.internals.ChannelUtils
 import nac.chat.api.routes.channel.moveMessage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
 fun MoveToChannelSheet(
     messageId: String,
     sourceChannelId: String,
-    onDone: suspend () -> Unit
+    hostScope: CoroutineScope,
+    onMoved: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
 
@@ -139,19 +139,19 @@ fun MoveToChannelSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(enabled = !loading) {
-                                    coroutineScope.launch {
-                                        loading = true
+                                    loading = true
+                                    hostScope.launch {
                                         val result = moveMessage(
                                             messageId = messageId,
                                             sourceChannelId = sourceChannelId,
                                             targetChannelId = channel.id ?: return@launch
                                         )
-                                        loading = false
                                         result
                                             .onSuccess {
-                                                onDone()
+                                                onMoved()
                                             }
                                             .onFailure { e ->
+                                                loading = false
                                                 Toast.makeText(
                                                     context,
                                                     e.message ?: "Failed to move message",
