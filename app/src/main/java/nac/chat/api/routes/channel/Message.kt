@@ -39,7 +39,7 @@ suspend fun moveMessage(
     targetChannelId: String
 ): Result<Unit> {
     return try {
-        val response = StoatHttp.post("https://community.nac.social:3210/api/move-message") {
+        val response = StoatHttp.post("https://community.nac.social/bot/api/move-message") {
             header("x-session-token", StoatAPI.sessionToken)
             contentType(ContentType.Application.Json)
             setBody(
