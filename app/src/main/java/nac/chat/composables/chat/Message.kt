@@ -442,6 +442,18 @@ fun Message(
                                 val content = it.stripPUAChars()
                                 if (content.isBlank()) return@let // if only an attachment is sent
 
+                                // Suppress the raw link text when the message is just a single
+                                // image/GIF URL that is already rendered as an Image embed below
+                                // (mirrors web's isOnlyGIF). Otherwise the long giphy URL leaks
+                                // above the GIF.
+                                val trimmedContent = content.trim()
+                                val isSoleImageEmbedLink =
+                                    message.embeds?.any { embed -> embed.type == "Image" } == true &&
+                                        !trimmedContent.contains(Regex("\\s")) &&
+                                        (trimmedContent.startsWith("http://") ||
+                                            trimmedContent.startsWith("https://"))
+                                if (isSoleImageEmbedLink) return@let
+
                                 val gigamoji = Gigamoji.useGigamojiForMessage(content)
                                 val fontSizeMultiplier = when (gigamoji) {
                                     GigamojiState.Single -> 5f

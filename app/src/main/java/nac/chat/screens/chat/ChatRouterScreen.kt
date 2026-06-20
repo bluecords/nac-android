@@ -72,6 +72,8 @@ import nac.chat.api.internals.DirectMessages
 import nac.chat.api.realtime.DisconnectionState
 import nac.chat.api.realtime.RealtimeSocket
 import nac.chat.api.routes.microservices.gazette.getLatestChangelog
+import nac.chat.api.routes.invites.fetchInviteByCode
+import nac.chat.api.routes.invites.joinInviteByCode
 import nac.chat.api.routes.push.subscribePush
 import nac.chat.api.routes.user.fetchSelf
 import nac.chat.core.model.data.STOAT_FILES
@@ -79,6 +81,7 @@ import nac.chat.core.model.schemas.User
 import nac.chat.api.settings.SyncedSettings
 import nac.chat.callbacks.Action
 import nac.chat.callbacks.ActionChannel
+import nac.chat.callbacks.PendingInvite
 import nac.chat.composables.chat.DisconnectedNotice
 import nac.chat.composables.screens.chat.drawer.ChannelSideDrawer
 import nac.chat.core.model.schemas.ReleaseNotesSettings
@@ -421,6 +424,22 @@ fun ChatRouterScreen(
 
     LaunchedEffect(Unit) {
         viewModel.maybeShowChangelog()
+    }
+
+    // Auto-join an invite that was captured while signed out (see InviteActivity). Runs once
+    // we've landed in the app authenticated, joins the server, and switches into its channel
+    // so the user ends up inside the server rather than at Home.
+    LaunchedEffect(Unit) {
+        val code = PendingInvite.code ?: return@LaunchedEffect
+        PendingInvite.code = null
+        try {
+            val join = joinInviteByCode(code)
+            val targetChannel = join.value?.channels?.firstOrNull()?.id
+                ?: fetchInviteByCode(code).value?.channelId
+            targetChannel?.let { ActionChannel.send(Action.SwitchChannel(it)) }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR) { "Failed to auto-join pending invite: ${e.message}" }
+        }
     }
 
     LaunchedEffect(Unit) {

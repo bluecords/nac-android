@@ -1,5 +1,6 @@
 package nac.chat.activities
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -54,6 +55,9 @@ import nac.chat.api.routes.invites.joinInviteByCode
 import nac.chat.api.settings.LoadedSettings
 import nac.chat.api.settings.SyncedSettings
 import nac.chat.callbacks.ActionChannel
+import nac.chat.callbacks.PendingInvite
+import nac.chat.persistence.KVStorage
+import kotlinx.coroutines.runBlocking
 import nac.chat.composables.generic.IconPlaceholder
 import nac.chat.composables.generic.RemoteImage
 import nac.chat.core.model.data.STOAT_FILES
@@ -70,6 +74,20 @@ class InviteActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val inviteCode = intent.data?.lastPathSegment
+
+        // If the user isn't signed in yet, stash the invite code and send them through the
+        // normal auth flow. The invite is auto-joined once they land in the app (consumed in
+        // ChatRouterScreen), so "open invite link -> create account or log in -> land in the
+        // server" works end-to-end instead of dropping them at Home.
+        val signedIn = runBlocking {
+            !KVStorage(this@InviteActivity).get("sessionToken").isNullOrBlank()
+        }
+        if (!signedIn && inviteCode != null) {
+            PendingInvite.code = inviteCode
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.Transparent.toArgb()
@@ -145,6 +163,10 @@ fun InviteScreen(
 
     LaunchedEffect(viewModel.joinResult) {
         if (viewModel.joinResult?.ok == true) {
+            // Land the user inside the server they just joined, not back at Home.
+            viewModel.joinResult?.value?.channels?.firstOrNull()?.id?.let {
+                viewModel.navigateToServer(it)
+            }
             onFinish()
         }
     }

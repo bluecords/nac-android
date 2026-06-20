@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.internals.BrushCompat
+import nac.chat.api.internals.Favorites
 import nac.chat.api.internals.ULID
 import nac.chat.api.internals.solidColor
 import nac.chat.api.routes.user.fetchUserProfile
@@ -148,6 +149,24 @@ fun UserInfoSheet(
                         .align(Alignment.TopEnd)
                         .padding(top = 8.dp, end = 8.dp)
                 ) {
+                    if (user.id != null && user.id != StoatAPI.selfId) {
+                        val isFavorite = Favorites.isFavorite(user.id!!)
+                        SmallFloatingActionButton(
+                            onClick = { Favorites.toggle(user.id!!) },
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    if (isFavorite) R.drawable.ic_star_shine_24dp__fill
+                                    else R.drawable.ic_star_shine_24dp
+                                ),
+                                contentDescription = stringResource(
+                                    if (isFavorite) R.string.favorites_remove
+                                    else R.string.favorites_add
+                                )
+                            )
+                        }
+                    }
+
                     if (Experiments.enableServerIdentityOptions.isEnabled) {
                         SmallFloatingActionButton(
                             onClick = { showServerIdentityOptions = true },

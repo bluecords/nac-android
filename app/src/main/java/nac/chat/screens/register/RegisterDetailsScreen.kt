@@ -33,27 +33,42 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import org.koin.androidx.compose.koinViewModel
 import nac.chat.R
 import nac.chat.NACApplication
+import nac.chat.api.StoatAPI
 import nac.chat.api.routes.account.RegistrationBody
+import nac.chat.api.routes.account.negotiateAuthentication
 import nac.chat.api.routes.account.register
 import nac.chat.api.routes.misc.getRootRoute
+import nac.chat.api.routes.onboard.needsOnboarding
 import nac.chat.composables.generic.FormTextField
+import nac.chat.persistence.KVStorage
 import com.hcaptcha.sdk.HCaptcha
 import com.hcaptcha.sdk.HCaptchaConfig
 import com.hcaptcha.sdk.HCaptchaSize
 import com.hcaptcha.sdk.HCaptchaTheme
 import kotlinx.coroutines.launch
 
-class RegisterDetailsScreenViewModel : ViewModel() {
+class RegisterDetailsScreenViewModel(
+    private val kvStorage: KVStorage
+) : ViewModel() {
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var error by mutableStateOf<String?>(null)
     private var captchaToken by mutableStateOf<String?>(null)
+
+    private var _navigateTo by mutableStateOf<String?>(null)
+    val navigateTo: String?
+        get() = _navigateTo
+
+    fun navigationComplete() {
+        _navigateTo = null
+    }
 
     fun initCaptcha(context: Context, onSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -93,7 +108,7 @@ class RegisterDetailsScreenViewModel : ViewModel() {
         }
     }
 
-    fun doRegistration(navController: NavController) {
+    fun doRegistration() {
         val body = RegistrationBody(
             email = email,
             password = password,
@@ -103,10 +118,50 @@ class RegisterDetailsScreenViewModel : ViewModel() {
         viewModelScope.launch {
             val result = register(body)
 
-            if (result.ok) {
-                navController.navigate("register/verify/$email")
-            } else {
+            if (!result.ok) {
                 error = result.unwrapError().type
+                return@launch
+            }
+
+            // Account created. If the server requires email verification, show the
+            // verification screen. Otherwise (verification disabled server-side) auto-log
+            // the user in so they never hit a dead-end "check your email" wall.
+            val needsEmailVerification = try {
+                getRootRoute().features.email
+            } catch (e: Exception) {
+                true // be safe: fall back to the verification screen
+            }
+
+            if (needsEmailVerification) {
+                _navigateTo = "verify"
+                return@launch
+            }
+
+            try {
+                val response = negotiateAuthentication(email, password)
+                if (response.error != null || response.proceedMfa || response.firstUserHints == null) {
+                    // Couldn't auto-login (or unexpected MFA on a brand-new account);
+                    // send the user to the login screen to sign in manually.
+                    _navigateTo = "login"
+                    return@launch
+                }
+
+                val token = response.firstUserHints.token
+                val id = response.firstUserHints.id
+
+                kvStorage.set("sessionToken", token)
+                kvStorage.set("sessionId", id)
+
+                if (needsOnboarding(token)) {
+                    _navigateTo = "onboarding"
+                    return@launch
+                }
+
+                StoatAPI.loginAs(token)
+                StoatAPI.setSessionId(id)
+                _navigateTo = "home"
+            } catch (e: Exception) {
+                error = e.message ?: "Could not sign in"
             }
         }
     }
@@ -115,9 +170,25 @@ class RegisterDetailsScreenViewModel : ViewModel() {
 @Composable
 fun RegisterDetailsScreen(
     navController: NavController,
-    viewModel: RegisterDetailsScreenViewModel = viewModel()
+    viewModel: RegisterDetailsScreenViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
+
+    LaunchedEffect(viewModel.navigateTo) {
+        when (viewModel.navigateTo) {
+            "verify" -> navController.navigate("register/verify/${viewModel.email}")
+            "onboarding" -> navController.navigate("register/onboarding") {
+                popUpTo(0) { inclusive = true }
+            }
+            "home" -> navController.navigate("chat") {
+                popUpTo(0) { inclusive = true }
+            }
+            "login" -> navController.navigate("login/login")
+        }
+        if (viewModel.navigateTo != null) {
+            viewModel.navigationComplete()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -229,7 +300,7 @@ fun RegisterDetailsScreen(
             Button(
                 onClick = {
                     viewModel.initCaptcha(context) {
-                        viewModel.doRegistration(navController)
+                        viewModel.doRegistration()
                     }
                 },
                 enabled = viewModel.email.isNotBlank() && viewModel.password.isNotBlank()

@@ -183,6 +183,8 @@ class MainActivityViewModel(
         viewModelScope.launch {
             Log.d("MainActivity", "Hydrating Experiments from KV")
             Experiments.hydrateWithKv()
+            Log.d("MainActivity", "Hydrating Favorites from KV")
+            nac.chat.api.internals.Favorites.hydrate()
             Log.d("MainActivity", "Performing health check")
             doHealthCheck()
             Log.d("MainActivity", "Performing update geo state")

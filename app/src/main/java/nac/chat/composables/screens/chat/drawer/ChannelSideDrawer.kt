@@ -81,7 +81,9 @@ import nac.chat.api.StoatAPI
 import nac.chat.api.internals.CategorisedChannelList
 import nac.chat.api.internals.ChannelUtils
 import nac.chat.api.internals.DirectMessages
+import nac.chat.api.internals.Favorites
 import nac.chat.api.internals.FriendRequests
+import nac.chat.api.routes.user.openDM
 import nac.chat.api.settings.GeoStateProvider
 import nac.chat.api.settings.NotificationSettingsProvider
 import nac.chat.api.settings.SyncedSettings
@@ -206,6 +208,80 @@ fun ChannelSideDrawer(
     }
 
     val scope = rememberCoroutineScope()
+
+    var showFavoritesSheet by remember { mutableStateOf(false) }
+    if (showFavoritesSheet) {
+        val favoritesSheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            sheetState = favoritesSheetState,
+            onDismissRequest = { showFavoritesSheet = false }
+        ) {
+            Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_star_shine_24dp),
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.favorites_title),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
+                    )
+                }
+                HorizontalDivider()
+                if (Favorites.ids.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.favorites_empty),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    Favorites.ids.forEach { favUserId ->
+                        val favUser = StoatAPI.userCache[favUserId]
+                        val favName = ChannelUtils.resolveServerNickname(favUserId)
+                            ?: favUser?.let { User.resolveDefaultName(it) }
+                            ?: stringResource(R.string.unknown)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        try {
+                                            val dm = openDM(favUserId)
+                                            favoritesSheetState.hide()
+                                            showFavoritesSheet = false
+                                            dm.id?.let {
+                                                onDestinationChanged(ChatRouterDestination.Channel(it))
+                                            }
+                                            drawerState?.close()
+                                        } catch (e: Exception) {
+                                            // ignore; user can retry
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            if (favUser != null) {
+                                UserAvatar(
+                                    username = favName,
+                                    avatar = favUser.avatar,
+                                    userId = favUserId,
+                                    size = 38.dp
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(text = favName, fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     Row(modifier.fillMaxSize()) {
         LazyColumn(
@@ -399,6 +475,24 @@ fun ChannelSideDrawer(
                             .clip(CircleShape)
                             .background(leftIndicatorColour.value)
                             .align(Alignment.CenterStart)
+                    )
+                }
+            }
+
+            item(key = "favorites") {
+                Box(
+                    Modifier
+                        .padding(8.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            showFavoritesSheet = true
+                        }
+                        .size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_star_shine_24dp),
+                        contentDescription = stringResource(R.string.favorites_title)
                     )
                 }
             }

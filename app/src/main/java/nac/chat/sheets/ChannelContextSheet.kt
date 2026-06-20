@@ -19,6 +19,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import nac.chat.R
 import nac.chat.api.StoatAPI
+import nac.chat.api.internals.ChannelUtils
+import nac.chat.api.internals.Favorites
+import nac.chat.core.model.schemas.ChannelType
 import nac.chat.composables.generic.SheetButton
 
 import nac.chat.internals.Platform
@@ -42,6 +45,38 @@ fun ChannelContextSheet(channelId: String, onHideSheet: suspend () -> Unit) {
     val context = LocalContext.current
 
     val coroutineScope = rememberCoroutineScope()
+
+    if (channel.channelType == ChannelType.DirectMessage) {
+        val partnerId = ChannelUtils.resolveDMPartner(channel)
+        if (partnerId != null) {
+            val isFavorite = Favorites.isFavorite(partnerId)
+            SheetButton(
+                headlineContent = {
+                    Text(
+                        text = stringResource(
+                            id = if (isFavorite) R.string.favorites_remove
+                            else R.string.favorites_add
+                        )
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isFavorite) R.drawable.ic_star_shine_24dp__fill
+                            else R.drawable.ic_star_shine_24dp
+                        ),
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    Favorites.toggle(partnerId)
+                    coroutineScope.launch {
+                        onHideSheet()
+                    }
+                }
+            )
+        }
+    }
 
     SheetButton(
         headlineContent = {

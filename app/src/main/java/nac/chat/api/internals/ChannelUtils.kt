@@ -21,12 +21,27 @@ object ChannelUtils {
      * @see User.resolveDefaultName
      */
     fun resolveName(channel: Channel): String? {
-        return channel.name
-            ?: StoatAPI.userCache[channel.recipients?.first { u -> u != StoatAPI.selfId }]?.let {
-                User.resolveDefaultName(
-                    it
-                )
-            }
+        channel.name?.let { return it }
+        val partnerId = channel.recipients?.firstOrNull { u -> u != StoatAPI.selfId }
+            ?: return null
+        // Prefer the recipient's server nickname (DMs only carry a plain User with no
+        // server context). Mirrors web's User.serverNickname so DMs read consistently
+        // with the member list in this single-server community.
+        resolveServerNickname(partnerId)?.let { return it }
+        return StoatAPI.userCache[partnerId]?.let { User.resolveDefaultName(it) }
+    }
+
+    /**
+     * Look across every server the current user shares with [userId] for a ServerMember
+     * nickname, returning the first non-blank one. Used to prefer a nickname over the raw
+     * global username in DM display contexts.
+     */
+    fun resolveServerNickname(userId: String): String? {
+        for (serverId in StoatAPI.serverCache.keys) {
+            val nickname = StoatAPI.members.getMember(serverId, userId)?.nickname
+            if (!nickname.isNullOrBlank()) return nickname
+        }
+        return null
     }
 
     fun resolveDMPartner(channel: Channel): String? {

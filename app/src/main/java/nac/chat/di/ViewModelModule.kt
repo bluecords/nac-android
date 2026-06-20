@@ -6,6 +6,7 @@ import nac.chat.screens.chat.ChatRouterViewModel
 import nac.chat.screens.chat.views.channel.ChannelScreenViewModel
 import nac.chat.screens.login.LoginViewModel
 import nac.chat.screens.login.MfaScreenViewModel
+import nac.chat.screens.register.RegisterDetailsScreenViewModel
 import nac.chat.screens.settings.AccountSettingsScreenViewModel
 import nac.chat.screens.settings.AppearanceSettingsScreenViewModel
 import nac.chat.screens.settings.DebugSettingsScreenViewModel
@@ -30,6 +31,7 @@ val viewModelModule = module {
     viewModel { DebugSettingsScreenViewModel(get()) }
     viewModel { NotificationsSettingsScreenViewModel(get(), androidContext()) }
     viewModel { LoginViewModel(get()) }
+    viewModel { RegisterDetailsScreenViewModel(get()) }
     viewModel { ProfileSettingsScreenViewModel(androidApplication()) }
     viewModel { AppearanceSettingsScreenViewModel(androidApplication()) }
     viewModel { ChannelSettingsOverviewViewModel(androidApplication()) }
