@@ -105,6 +105,7 @@
                 <data android:scheme="https" />
 
                 <data android:host="nac.social" />
+                <data android:host="community.nac.social" />
 
                 <data android:pathPrefix="/invite/" />
             </intent-filter>
