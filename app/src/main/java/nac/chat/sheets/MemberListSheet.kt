@@ -201,6 +201,7 @@ class MemberListSheetViewModel(
 fun MemberListSheet(
     channelId: String,
     serverId: String? = null,
+    onFullyDismiss: (() -> Unit)? = null,
     viewModel: MemberListSheetViewModel = koinViewModel()
 ) {
     var showUserInfoSheet by remember { mutableStateOf(false) }
@@ -232,6 +233,10 @@ fun MemberListSheet(
                 userId = userInfoSheetTarget,
                 serverId = serverId,
                 dismissSheet = {
+                    // Fire this first, on a scope independent of this composable's own
+                    // (about to be torn down), so it can't get cancelled mid-flight by
+                    // the disposal triggered when showUserInfoSheet flips to false below.
+                    onFullyDismiss?.invoke()
                     userContextSheetState.hide()
                     showUserInfoSheet = false
                 }

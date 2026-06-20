@@ -61,7 +61,14 @@ fun ChannelInfoSheet(channelId: String, onHideSheet: suspend () -> Unit) {
         ) {
             MemberListSheet(
                 channelId = channelId,
-                serverId = channel?.server
+                serverId = channel?.server,
+                onFullyDismiss = {
+                    scope.launch {
+                        memberListSheetState.hide()
+                        memberListSheetShown = false
+                        onHideSheet()
+                    }
+                }
             )
         }
     }

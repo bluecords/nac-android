@@ -103,6 +103,7 @@ import nac.chat.core.model.schemas.has
 import nac.chat.screens.chat.ChatRouterDestination
 import nac.chat.screens.chat.LocalIsConnected
 import nac.chat.sheets.ChannelContextSheet
+import nac.chat.sheets.MemberListSheet
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -208,6 +209,36 @@ fun ChannelSideDrawer(
     }
 
     val scope = rememberCoroutineScope()
+
+    var showMembersSheet by remember { mutableStateOf(false) }
+    if (showMembersSheet) {
+        val membersSheetState = rememberModalBottomSheetState()
+        // NAC is single-server: fall back to the only cached server if the current
+        // screen has no server context (e.g. viewing a DM), so the icon's behaviour
+        // doesn't depend on what you're currently looking at.
+        val membersServerId = currentServer ?: StoatAPI.serverCache.keys.firstOrNull()
+        val membersServer = membersServerId?.let { StoatAPI.serverCache[it] }
+        val membersChannelId = membersServer?.let { ChannelUtils.categoriseServerFlat(it) }
+            ?.firstNotNullOfOrNull { (it as? CategorisedChannelList.Channel)?.channel?.id }
+        ModalBottomSheet(
+            sheetState = membersSheetState,
+            onDismissRequest = { showMembersSheet = false }
+        ) {
+            if (membersChannelId != null && membersServerId != null) {
+                MemberListSheet(
+                    channelId = membersChannelId,
+                    serverId = membersServerId,
+                    onFullyDismiss = {
+                        scope.launch {
+                            membersSheetState.hide()
+                            showMembersSheet = false
+                            drawerState?.close()
+                        }
+                    }
+                )
+            }
+        }
+    }
 
     var showFavoritesSheet by remember { mutableStateOf(false) }
     if (showFavoritesSheet) {
@@ -476,6 +507,26 @@ fun ChannelSideDrawer(
                             .background(leftIndicatorColour.value)
                             .align(Alignment.CenterStart)
                     )
+                }
+            }
+
+            if (StoatAPI.serverCache.isNotEmpty()) {
+                item(key = "members") {
+                    Box(
+                        Modifier
+                            .padding(8.dp)
+                            .clip(CircleShape)
+                            .clickable {
+                                showMembersSheet = true
+                            }
+                            .size(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_group_24dp),
+                            contentDescription = stringResource(R.string.channel_info_sheet_options_members)
+                        )
+                    }
                 }
             }
 
