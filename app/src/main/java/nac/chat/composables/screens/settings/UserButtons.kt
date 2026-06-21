@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -16,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +35,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import nac.chat.R
 import nac.chat.api.StoatAPI
+import nac.chat.api.internals.PermissionBit
+import nac.chat.api.internals.Roles
+import nac.chat.api.internals.has
+import nac.chat.api.routes.server.banMember
+import nac.chat.api.routes.server.kickMember
 import nac.chat.api.routes.user.acceptFriendRequest
 import nac.chat.api.routes.user.blockUser
 import nac.chat.api.routes.user.friendUser
@@ -51,11 +58,21 @@ import logcat.logcat
 @Composable
 fun UserButtons(
     user: User,
-    dismissSheet: suspend () -> Unit
+    dismissSheet: suspend () -> Unit,
+    serverId: String? = null
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    val server = serverId?.let { StoatAPI.serverCache[it] }
+    val selfPermissions = server?.let { srv ->
+        StoatAPI.selfId?.let { StoatAPI.members.getMember(srv.id ?: "", it) }
+            ?.let { Roles.permissionFor(srv, it) }
+    }
+    val isSelf = user.id == StoatAPI.selfId
+    val isServerOwner = server != null && user.id == server.owner
+    var showKickConfirmation by remember { mutableStateOf(false) }
+    var showBanConfirmation by remember { mutableStateOf(false) }
 
     var botEasterEgg by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -317,6 +334,27 @@ fun UserButtons(
                         )
                     }
 
+                    if (server != null && !isSelf && !isServerOwner) {
+                        if (selfPermissions has PermissionBit.KickMembers) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.member_context_sheet_kick, user.username ?: "")) },
+                                onClick = {
+                                    menuOpen = false
+                                    showKickConfirmation = true
+                                }
+                            )
+                        }
+                        if (selfPermissions has PermissionBit.BanMembers) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.member_context_sheet_ban, user.username ?: "")) },
+                                onClick = {
+                                    menuOpen = false
+                                    showBanConfirmation = true
+                                }
+                            )
+                        }
+                    }
+
                     DropdownMenuItem(
                         text = {
                             Text(stringResource(R.string.user_info_sheet_copy_id))
@@ -360,5 +398,59 @@ fun UserButtons(
                 }
             }
         }
+    }
+
+    if (showKickConfirmation && server != null) {
+        AlertDialog(
+            onDismissRequest = { showKickConfirmation = false },
+            title = { Text(stringResource(R.string.member_context_sheet_kick_confirm, user.username ?: "")) },
+            confirmButton = {
+                Button(onClick = {
+                    showKickConfirmation = false
+                    scope.launch {
+                        try {
+                            kickMember(server.id ?: "", user.id!!)
+                            dismissSheet()
+                        } catch (e: Exception) {
+                            logcat(LogPriority.ERROR) { e.asLog() }
+                        }
+                    }
+                }) {
+                    Text(stringResource(R.string.member_context_sheet_kick_confirm_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showKickConfirmation = false }) {
+                    Text(stringResource(R.string.member_context_sheet_kick_confirm_no))
+                }
+            }
+        )
+    }
+
+    if (showBanConfirmation && server != null) {
+        AlertDialog(
+            onDismissRequest = { showBanConfirmation = false },
+            title = { Text(stringResource(R.string.member_context_sheet_ban_confirm, user.username ?: "")) },
+            confirmButton = {
+                Button(onClick = {
+                    showBanConfirmation = false
+                    scope.launch {
+                        try {
+                            banMember(server.id ?: "", user.id!!)
+                            dismissSheet()
+                        } catch (e: Exception) {
+                            logcat(LogPriority.ERROR) { e.asLog() }
+                        }
+                    }
+                }) {
+                    Text(stringResource(R.string.member_context_sheet_ban_confirm_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBanConfirmation = false }) {
+                    Text(stringResource(R.string.member_context_sheet_ban_confirm_no))
+                }
+            }
+        )
     }
 }

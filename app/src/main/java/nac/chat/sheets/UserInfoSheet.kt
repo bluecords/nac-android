@@ -433,7 +433,7 @@ fun UserInfoSheet(
         }
 
         item(key = "actions", span = StaggeredGridItemSpan.FullLine) {
-            UserButtons(user, dismissSheet)
+            UserButtons(user, dismissSheet, serverId)
         }
     }
 
