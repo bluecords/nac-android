@@ -84,6 +84,11 @@ class ServerSettingsActivity : ComponentActivity() {
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     settings.userAgentString = buildUserAgent("ServerSettings")
+                                    // Same class of bug we kept hitting tonight elsewhere: without
+                                    // this, the WebView happily reuses a stale cached bundle for
+                                    // this URL instead of picking up a fresh web-side deploy.
+                                    settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+                                    clearCache(true)
 
                                     var injected = false
 
@@ -95,7 +100,12 @@ class ServerSettingsActivity : ComponentActivity() {
                                                 val authJson = """{"session":{"_id":"android-session","token":"$sessionToken","userId":"$userId","valid":true}}"""
                                                 val js = """
                                                     (function() {
-                                                        var authData = '$authJson';
+                                                        // localforage stores real JS objects in IndexedDB, not
+                                                        // JSON strings - storing the raw string here means the
+                                                        // web app's Auth store schema check (clean()) sees a
+                                                        // string where it expects an object and treats it as
+                                                        // no session at all, landing on the public login page.
+                                                        var authData = JSON.parse('$authJson');
                                                         var req = indexedDB.open('localforage');
                                                         req.onupgradeneeded = function(e) {
                                                             e.target.result.createObjectStore('keyvaluepairs');

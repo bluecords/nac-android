@@ -1,6 +1,7 @@
 package nac.chat.activities
 
 import android.content.Context
+import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
@@ -60,6 +61,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -93,6 +95,7 @@ import nac.chat.core.model.schemas.HealthNotice
 import nac.chat.material.EasingTokens
 import nac.chat.persistence.KVStorage
 import nac.chat.screens.DefaultDestinationScreen
+import nac.chat.services.VoiceCallService
 import nac.chat.screens.about.AboutScreen
 import nac.chat.screens.about.AttributionScreen
 import nac.chat.screens.changelogs.ReadChangelogScreen
@@ -795,10 +798,19 @@ fun AppEntrypoint(
                                 showVoiceUI = false
                             }
                         ) {
+                            val voiceServiceContext = LocalContext.current
                             voiceChannelId?.let {
                                 VoiceSheet(
                                     it,
                                     onDisconnect = {
+                                        // Stop this directly and immediately, rather than relying
+                                        // on a reactive roomState listener that gets torn down in
+                                        // the same composition pass as everything else below -
+                                        // that race is exactly why the "Voice call active"
+                                        // notification was sticking around after hanging up.
+                                        voiceServiceContext.stopService(
+                                            Intent(voiceServiceContext, VoiceCallService::class.java)
+                                        )
                                         showVoiceUI = false
                                         voiceChannelId = null
                                     }
