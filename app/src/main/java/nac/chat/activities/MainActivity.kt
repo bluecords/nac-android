@@ -126,9 +126,12 @@ import nac.chat.screens.settings.NotificationsSettingsScreen
 import nac.chat.screens.settings.ProfileSettingsScreen
 import nac.chat.screens.settings.SessionSettingsScreen
 import nac.chat.screens.settings.SettingsScreen
+import nac.chat.screens.settings.channel.ChannelPermissionEditor
 import nac.chat.screens.settings.channel.ChannelSettingsHome
 import nac.chat.screens.settings.channel.ChannelSettingsOverview
 import nac.chat.screens.settings.channel.ChannelSettingsPermissions
+import nac.chat.screens.settings.channel.ChannelSettingsWebhookView
+import nac.chat.screens.settings.channel.ChannelSettingsWebhooks
 import nac.chat.ui.theme.NACTheme
 import com.google.android.material.color.DynamicColors
 import io.ktor.client.request.get
@@ -736,6 +739,20 @@ fun AppEntrypoint(
                     composable("settings/channel/{channelId}/permissions") { backStackEntry ->
                         val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
                         ChannelSettingsPermissions(navController, channelId)
+                    }
+                    composable("settings/channel/{channelId}/permissions/{roleId}") { backStackEntry ->
+                        val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
+                        val roleId = backStackEntry.arguments?.getString("roleId") ?: "default"
+                        ChannelPermissionEditor(navController, channelId, roleId)
+                    }
+                    composable("settings/channel/{channelId}/webhooks") { backStackEntry ->
+                        val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
+                        ChannelSettingsWebhooks(navController, channelId)
+                    }
+                    composable("settings/channel/{channelId}/webhooks/{webhookId}") { backStackEntry ->
+                        val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
+                        val webhookId = backStackEntry.arguments?.getString("webhookId") ?: ""
+                        ChannelSettingsWebhookView(navController, channelId, webhookId)
                     }
 
                     composable("channel/{channelId}/pins") { backStackEntry ->

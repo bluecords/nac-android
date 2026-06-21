@@ -42,7 +42,6 @@ import nac.chat.api.internals.PermissionBit
 import nac.chat.api.internals.hasPermission
 import nac.chat.api.routes.channel.leaveDeleteOrCloseChannel
 import nac.chat.core.model.schemas.ChannelType
-import nac.chat.api.settings.FeatureFlags
 import nac.chat.internals.extensions.rememberChannelPermissions
 import nac.chat.screens.settings.SettingsIcon
 import kotlinx.coroutines.launch
@@ -148,8 +147,7 @@ fun ChannelSettingsHome(navController: NavController, channelId: String) {
                         )
                     }
 
-                    // TODO Implement permissions UI and remove the predicate check
-                    if (permissions.hasPermission(PermissionBit.ManageRole) && FeatureFlags.labsAccessControlGranted) {
+                    if (permissions.hasPermission(PermissionBit.ManagePermissions) && channel.channelType != ChannelType.SavedMessages) {
                         ListItem(
                             headlineContent = {
                                 Text(
@@ -168,6 +166,29 @@ fun ChannelSettingsHome(navController: NavController, channelId: String) {
                                 .testTag("channel_settings_view_permissions")
                                 .clickable {
                                     navController.navigate("settings/channel/${channel.id}/permissions")
+                                }
+                        )
+                    }
+
+                    if (permissions.hasPermission(PermissionBit.ManageWebhooks)) {
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(id = R.string.channel_settings_webhooks)
+                                )
+                            },
+                            leadingContent = {
+                                SettingsIcon {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_webhook_24dp),
+                                        contentDescription = null,
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .testTag("channel_settings_view_webhooks")
+                                .clickable {
+                                    navController.navigate("settings/channel/${channel.id}/webhooks")
                                 }
                         )
                     }

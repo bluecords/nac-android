@@ -19,6 +19,7 @@ import nac.chat.core.model.schemas.Emoji
 import nac.chat.core.model.schemas.Message
 import nac.chat.core.model.schemas.Server
 import nac.chat.core.model.schemas.User
+import nac.chat.core.model.schemas.ChannelWebhook
 import nac.chat.core.model.util.ChannelVoiceState
 import nac.chat.persistence.Database
 import nac.chat.persistence.SqlStorage
@@ -139,6 +140,7 @@ object StoatAPI {
     val userCache = mutableStateMapOf<String, User>()
     val serverCache = mutableStateMapOf<String, Server>()
     val channelCache = mutableStateMapOf<String, ChannelSchema>()
+    val webhookCache = mutableStateMapOf<String, ChannelWebhook>()
     val emojiCache = mutableStateMapOf<String, Emoji>()
     val messageCache = mutableStateMapOf<String, Message>()
     val voiceStateCache = mutableStateMapOf<String, ChannelVoiceState>()

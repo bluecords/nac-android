@@ -135,6 +135,16 @@ enum class ChannelType(val value: String) {
 }
 
 @Serializable
+data class ChannelWebhook(
+    val id: String? = null,
+    val name: String? = null,
+    val avatar: AutumnResource? = null,
+    @SerialName("channel_id")
+    val channelId: String? = null,
+    val token: String? = null
+)
+
+@Serializable
 data class ChannelUserChoice(
     val channel: String,
     val user: String

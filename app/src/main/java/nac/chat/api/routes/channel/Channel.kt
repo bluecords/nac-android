@@ -10,6 +10,7 @@ import nac.chat.core.model.schemas.Channel
 import nac.chat.core.model.schemas.Message
 import nac.chat.core.model.schemas.MessagesInChannel
 import nac.chat.core.model.schemas.User
+import nac.chat.core.model.schemas.ChannelWebhook
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -21,6 +22,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ListSerializer
@@ -335,4 +337,94 @@ suspend fun searchChannel(
             members = emptyList()
         )
     }
+}
+
+@Serializable
+data class PermissionOverrideBody(val allow: Long, val deny: Long)
+
+@Serializable
+data class SetChannelPermissionsBody(val permissions: PermissionOverrideBody)
+
+/**
+ * Set a role's (or "default", for the channel-wide baseline) permission override on a channel.
+ */
+suspend fun setChannelPermissions(channelId: String, roleId: String, allow: Long, deny: Long) {
+    val response = StoatHttp.put("/channels/$channelId/permissions/$roleId".api()) {
+        contentType(ContentType.Application.Json)
+        setBody(
+            StoatJson.encodeToString(
+                SetChannelPermissionsBody.serializer(),
+                SetChannelPermissionsBody(PermissionOverrideBody(allow, deny))
+            )
+        )
+    }
+        .bodyAsText()
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response)
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    val channel = StoatJson.decodeFromString(Channel.serializer(), response)
+    StoatAPI.channelCache[channelId] = channel
+}
+
+suspend fun fetchChannelWebhooks(channelId: String): List<ChannelWebhook> {
+    val response = StoatHttp.get("/channels/$channelId/webhooks".api())
+        .bodyAsText()
+
+    val webhooks = StoatJson.decodeFromString(ListSerializer(ChannelWebhook.serializer()), response)
+    webhooks.forEach { webhook -> webhook.id?.let { StoatAPI.webhookCache[it] = webhook } }
+    return webhooks
+}
+
+@Serializable
+data class CreateWebhookBody(val name: String)
+
+suspend fun createChannelWebhook(channelId: String, name: String): ChannelWebhook {
+    val response = StoatHttp.post("/channels/$channelId/webhooks".api()) {
+        contentType(ContentType.Application.Json)
+        setBody(StoatJson.encodeToString(CreateWebhookBody.serializer(), CreateWebhookBody(name)))
+    }
+        .bodyAsText()
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response)
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    val webhook = StoatJson.decodeFromString(ChannelWebhook.serializer(), response)
+    webhook.id?.let { StoatAPI.webhookCache[it] = webhook }
+    return webhook
+}
+
+@Serializable
+data class EditWebhookBody(val name: String? = null)
+
+suspend fun editWebhook(webhookId: String, token: String, name: String): ChannelWebhook {
+    val response = StoatHttp.patch("/webhooks/$webhookId/$token".api()) {
+        contentType(ContentType.Application.Json)
+        setBody(StoatJson.encodeToString(EditWebhookBody.serializer(), EditWebhookBody(name)))
+    }
+        .bodyAsText()
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response)
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    val webhook = StoatJson.decodeFromString(ChannelWebhook.serializer(), response)
+    StoatAPI.webhookCache[webhookId] = webhook
+    return webhook
+}
+
+suspend fun deleteWebhook(webhookId: String, token: String) {
+    StoatHttp.delete("/webhooks/$webhookId/$token".api())
+    StoatAPI.webhookCache.remove(webhookId)
 }
