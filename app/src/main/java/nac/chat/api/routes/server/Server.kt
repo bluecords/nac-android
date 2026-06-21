@@ -5,6 +5,7 @@ import nac.chat.api.StoatAPIError
 import nac.chat.api.StoatHttp
 import nac.chat.api.StoatJson
 import nac.chat.api.api
+import nac.chat.core.model.schemas.Category
 import nac.chat.core.model.schemas.Member
 import nac.chat.core.model.schemas.ServerWithChannelObjects
 import nac.chat.core.model.schemas.User
@@ -95,6 +96,29 @@ suspend fun fetchMember(serverId: String, userId: String, pure: Boolean = false)
 suspend fun leaveOrDeleteServer(serverId: String, leaveSilently: Boolean = false) {
     StoatHttp.delete("/servers/$serverId".api()) {
         parameter("leave_silently", leaveSilently)
+    }
+}
+
+@Serializable
+data class ServerCategoriesEditBody(val categories: List<Category>)
+
+suspend fun editServerCategories(serverId: String, categories: List<Category>) {
+    val response = StoatHttp.patch("/servers/$serverId".api()) {
+        contentType(ContentType.Application.Json)
+        setBody(
+            StoatJson.encodeToString(ServerCategoriesEditBody.serializer(), ServerCategoriesEditBody(categories))
+        )
+    }
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response.bodyAsText())
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    StoatAPI.serverCache[serverId]?.let { server ->
+        StoatAPI.serverCache[serverId] = server.copy(categories = categories)
     }
 }
 

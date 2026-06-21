@@ -138,6 +138,9 @@
     <string name="unknown">Unknown</string>
 
     <string name="menu">Menu</string>
+    <string name="channel_reorder_toggle">Edit channel positions</string>
+    <string name="channel_reorder_move_up">Move up</string>
+    <string name="channel_reorder_move_down">Move down</string>
     <string name="logout">Log out</string>
 
     <string name="home_join_jenvolt">Join Jenvolt</string>

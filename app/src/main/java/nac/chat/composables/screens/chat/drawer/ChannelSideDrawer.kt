@@ -62,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -83,6 +84,10 @@ import nac.chat.api.internals.ChannelUtils
 import nac.chat.api.internals.DirectMessages
 import nac.chat.api.internals.Favorites
 import nac.chat.api.internals.FriendRequests
+import nac.chat.api.internals.PermissionBit
+import nac.chat.api.internals.Roles
+import nac.chat.api.internals.has
+import nac.chat.api.routes.server.editServerCategories
 import nac.chat.api.routes.user.openDM
 import nac.chat.api.settings.GeoStateProvider
 import nac.chat.api.settings.NotificationSettingsProvider
@@ -127,6 +132,51 @@ fun ChannelSideDrawer(
         ChannelUtils.categoriseServerFlat(it)
     }
     val channelListState = rememberLazyListState()
+
+    val canEditChannels = server?.let { srv ->
+        StoatAPI.selfId?.let { StoatAPI.members.getMember(srv.id ?: "", it) }
+            ?.let { Roles.permissionFor(srv, it) } has PermissionBit.ManageChannel
+    } ?: false
+    var editingChannelOrder by remember { mutableStateOf(false) }
+    val reorderScope = rememberCoroutineScope()
+
+    fun moveChannel(channelId: String, delta: Int) {
+        val srv = server ?: return
+        val categories = srv.categories ?: return
+        val categoryIndex = categories.indexOfFirst { it.channels?.contains(channelId) == true }
+        if (categoryIndex == -1) return
+        val category = categories[categoryIndex]
+        val channels = category.channels?.toMutableList() ?: return
+        val fromIndex = channels.indexOf(channelId)
+        val toIndex = fromIndex + delta
+        if (fromIndex == -1 || toIndex < 0 || toIndex >= channels.size) return
+        channels.add(toIndex, channels.removeAt(fromIndex))
+        val newCategories = categories.toMutableList()
+        newCategories[categoryIndex] = category.copy(channels = channels)
+        reorderScope.launch {
+            try {
+                editServerCategories(srv.id ?: "", newCategories)
+            } catch (e: Exception) {
+                // ignore - list just won't reflect the move, user can retry
+            }
+        }
+    }
+
+    fun moveCategory(categoryId: String, delta: Int) {
+        val srv = server ?: return
+        val categories = srv.categories?.toMutableList() ?: return
+        val fromIndex = categories.indexOfFirst { it.id == categoryId }
+        val toIndex = fromIndex + delta
+        if (fromIndex == -1 || toIndex < 0 || toIndex >= categories.size) return
+        categories.add(toIndex, categories.removeAt(fromIndex))
+        reorderScope.launch {
+            try {
+                editServerCategories(srv.id ?: "", categories)
+            } catch (e: Exception) {
+                // ignore - list just won't reflect the move, user can retry
+            }
+        }
+    }
 
     LaunchedEffect(currentDestination) {
         if (currentDestination is ChatRouterDestination.Channel && currentServer != null) {
@@ -713,6 +763,19 @@ fun ChannelSideDrawer(
                         }
 
                         if (currentServer != null) {
+                            if (canEditChannels) {
+                                IconButton(onClick = { editingChannelOrder = !editingChannelOrder }) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_edit_24dp),
+                                        contentDescription = stringResource(R.string.channel_reorder_toggle),
+                                        tint = if (editingChannelOrder) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            LocalContentColor.current
+                                        }
+                                    )
+                                }
+                            }
                             IconButton(onClick = {
                                 server?.id?.let { srvId -> onShowServerContextSheet(srvId) }
                             }) {
@@ -745,7 +808,10 @@ fun ChannelSideDrawer(
                     drawerState,
                     channelListState,
                     onOpenChannelContextSheet = { channelContextSheetTarget = it },
-                    serverId = currentServer
+                    serverId = currentServer,
+                    editingChannelOrder = editingChannelOrder,
+                    onMoveChannel = ::moveChannel,
+                    onMoveCategory = ::moveCategory
                 )
             }
         }
@@ -915,7 +981,10 @@ fun ColumnScope.ServerChannelListRenderer(
     drawerState: DrawerState?,
     channelListState: LazyListState,
     onOpenChannelContextSheet: (String) -> Unit,
-    serverId: String
+    serverId: String,
+    editingChannelOrder: Boolean = false,
+    onMoveChannel: (String, Int) -> Unit = { _, _ -> },
+    onMoveCategory: (String, Int) -> Unit = { _, _ -> }
 ) {
     val scope = rememberCoroutineScope()
 
@@ -953,38 +1022,82 @@ fun ColumnScope.ServerChannelListRenderer(
         items(categorisedChannels?.size ?: 0) {
             when (val channelOrCat = categorisedChannels?.get(it)) {
                 is CategorisedChannelList.Channel -> {
-                    ChannelItem(
-                        channel = channelOrCat.channel,
-                        isCurrent = when (currentDestination) {
-                            is ChatRouterDestination.Channel -> {
-                                currentDestination.channelId == channelOrCat.channel.id
-                            }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) {
+                            ChannelItem(
+                                channel = channelOrCat.channel,
+                                isCurrent = when (currentDestination) {
+                                    is ChatRouterDestination.Channel -> {
+                                        currentDestination.channelId == channelOrCat.channel.id
+                                    }
 
-                            else -> false
-                        },
-                        onDestinationChanged = {
-                            onDestinationChanged(it)
-                            scope.launch {
-                                drawerState?.close()
-                            }
-                        },
-                        hasUnread = channelOrCat.channel.lastMessageID?.let { lastMessageID ->
-                            StoatAPI.unreads.hasUnread(
-                                channelOrCat.channel.id!!,
-                                lastMessageID,
-                                serverId
+                                    else -> false
+                                },
+                                onDestinationChanged = {
+                                    onDestinationChanged(it)
+                                    scope.launch {
+                                        drawerState?.close()
+                                    }
+                                },
+                                hasUnread = channelOrCat.channel.lastMessageID?.let { lastMessageID ->
+                                    StoatAPI.unreads.hasUnread(
+                                        channelOrCat.channel.id!!,
+                                        lastMessageID,
+                                        serverId
+                                    )
+                                } ?: false,
+                                isMuted = NotificationSettingsProvider.isChannelMuted(
+                                    channelOrCat.channel.id!!,
+                                    serverId
+                                ),
+                                onOpenChannelContextSheet = onOpenChannelContextSheet
                             )
-                        } ?: false,
-                        isMuted = NotificationSettingsProvider.isChannelMuted(
-                            channelOrCat.channel.id!!,
-                            serverId
-                        ),
-                        onOpenChannelContextSheet = onOpenChannelContextSheet
-                    )
+                        }
+                        if (editingChannelOrder) {
+                            channelOrCat.channel.id?.let { channelId ->
+                                IconButton(onClick = { onMoveChannel(channelId, -1) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_keyboard_arrow_right_24dp),
+                                        contentDescription = stringResource(R.string.channel_reorder_move_up),
+                                        modifier = Modifier.rotate(-90f)
+                                    )
+                                }
+                                IconButton(onClick = { onMoveChannel(channelId, 1) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_keyboard_arrow_right_24dp),
+                                        contentDescription = stringResource(R.string.channel_reorder_move_down),
+                                        modifier = Modifier.rotate(90f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 is CategorisedChannelList.Category -> {
-                    CategoryItem(category = channelOrCat.category)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) {
+                            CategoryItem(category = channelOrCat.category)
+                        }
+                        if (editingChannelOrder) {
+                            channelOrCat.category.id?.let { categoryId ->
+                                IconButton(onClick = { onMoveCategory(categoryId, -1) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_keyboard_arrow_right_24dp),
+                                        contentDescription = stringResource(R.string.channel_reorder_move_up),
+                                        modifier = Modifier.rotate(-90f)
+                                    )
+                                }
+                                IconButton(onClick = { onMoveCategory(categoryId, 1) }, modifier = Modifier.size(32.dp)) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_keyboard_arrow_right_24dp),
+                                        contentDescription = stringResource(R.string.channel_reorder_move_down),
+                                        modifier = Modifier.rotate(90f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 else -> {}
