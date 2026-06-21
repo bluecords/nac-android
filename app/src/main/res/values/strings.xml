@@ -443,6 +443,8 @@
     <string name="user_info_sheet_category_owner">Owner</string>
     <string name="user_info_sheet_owner_not_found">Could not fetch owner information</string>
     <string name="user_info_sheet_add_friend">Add Friend</string>
+    <string name="user_info_sheet_friend_request_sent">Friend request sent</string>
+    <string name="user_info_sheet_friend_request_failed">Couldn\'t send friend request. Please try again.</string>
     <string name="user_info_sheet_send_message">Send Message</string>
     <string name="user_info_sheet_remove_friend">Remove Friend</string>
     <string name="user_info_sheet_accept_request">Accept</string>
@@ -460,6 +462,14 @@
 
     <string name="member_context_sheet_open">Open member options</string>
     <string name="member_context_sheet_remove_from_channel">Remove from %1$s</string>
+    <string name="member_context_sheet_kick">Kick %1$s</string>
+    <string name="member_context_sheet_kick_confirm">Kick %1$s from the server?</string>
+    <string name="member_context_sheet_kick_confirm_yes">Kick</string>
+    <string name="member_context_sheet_kick_confirm_no">Cancel</string>
+    <string name="member_context_sheet_ban">Ban %1$s</string>
+    <string name="member_context_sheet_ban_confirm">Ban %1$s from the server? They will not be able to rejoin unless unbanned.</string>
+    <string name="member_context_sheet_ban_confirm_yes">Ban</string>
+    <string name="member_context_sheet_ban_confirm_no">Cancel</string>
 
     <string name="user_badge_developer">Developer</string>
     <string name="user_badge_translator">Translator</string>

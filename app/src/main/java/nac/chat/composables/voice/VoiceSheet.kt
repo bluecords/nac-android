@@ -373,7 +373,15 @@ fun VoiceSheet(
                 Spacer(Modifier.width(4.dp))
                 Button(
                     onClick = {
-                        onDisconnect()
+                        // Explicitly disconnect and wait for it before tearing down the UI,
+                        // instead of relying on RoomScope's automatic dispose-time cleanup -
+                        // that left the server's side of the session in an unclear state,
+                        // blocking a clean rejoin even after the stuck-notification bug above
+                        // was fixed.
+                        scope.launch {
+                            room.disconnect()
+                            onDisconnect()
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,

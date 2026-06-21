@@ -66,12 +66,22 @@ fun UserButtons(
                 scope.launch {
                     try {
                         friendUser("${user.username}#${user.discriminator}")
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.user_info_sheet_friend_request_sent),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } catch (e: Exception) {
                         // Button did nothing, but not an error
                         if (e.message == "NoEffect") return@launch
 
                         // Log all other errors
                         logcat(LogPriority.ERROR) { e.asLog() }
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.user_info_sheet_friend_request_failed),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             },
@@ -93,9 +103,19 @@ fun UserButtons(
                             scope.launch {
                                 try {
                                     friendUser("${user.username}#${user.discriminator}")
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.user_info_sheet_friend_request_sent),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } catch (e: Exception) {
                                     if (e.message == "NoEffect") return@launch
                                     logcat(LogPriority.ERROR) { e.asLog() }
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.user_info_sheet_friend_request_failed),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         },

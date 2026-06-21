@@ -95,6 +95,48 @@ suspend fun leaveOrDeleteServer(serverId: String, leaveSilently: Boolean = false
     }
 }
 
+suspend fun kickMember(serverId: String, userId: String) {
+    val response = StoatHttp.delete("/servers/$serverId/members/$userId".api())
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response.bodyAsText())
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    StoatAPI.members.removeMember(serverId, userId)
+}
+
+@Serializable
+data class BanCreationBody(val reason: String? = null)
+
+suspend fun banMember(serverId: String, userId: String, reason: String? = null) {
+    val response = StoatHttp.put("/servers/$serverId/bans/$userId".api()) {
+        setBody(StoatJson.encodeToString(BanCreationBody.serializer(), BanCreationBody(reason)))
+    }
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response.bodyAsText())
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    StoatAPI.members.removeMember(serverId, userId)
+}
+
+suspend fun unbanMember(serverId: String, userId: String) {
+    val response = StoatHttp.delete("/servers/$serverId/bans/$userId".api())
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response.bodyAsText())
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+}
+
 @Serializable
 data class ServerCreationBody(
     val name: String,
