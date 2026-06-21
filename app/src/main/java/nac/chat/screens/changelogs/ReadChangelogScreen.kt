@@ -38,7 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import nac.chat.R
 import nac.chat.api.routes.microservices.gazette.GazetteChangelog
-import nac.chat.api.routes.microservices.gazette.getChangelogById
+import nac.chat.api.routes.microservices.gazette.getLatestChangelog
 import nac.chat.composables.markdown.prose.ProseMarkdown
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -63,13 +63,17 @@ sealed interface ReadChangelogScreenUiState {
 class ReadChangelogScreenViewModel(
     handle: SavedStateHandle
 ) : ViewModel() {
-    private val id: String = checkNotNull(handle["id"])
+    // The server only ever exposes the single current changelog (no per-version
+    // archive endpoint exists), so this always fetches the latest one regardless of
+    // which version ID navigated here - getChangelogById(id) hit a /v1/changelogs/<id>
+    // route that has never existed on the server, breaking the "What's New" screen on
+    // every version bump.
     private val retry = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<ReadChangelogScreenUiState> = retry
         .flatMapLatest {
-            flow { emit(ReadChangelogScreenUiState.Success(getChangelogById(id)) as ReadChangelogScreenUiState) }
+            flow { emit(ReadChangelogScreenUiState.Success(getLatestChangelog()) as ReadChangelogScreenUiState) }
                 .catch { emit(ReadChangelogScreenUiState.Error(it)) }
                 .onStart { emit(ReadChangelogScreenUiState.Loading) }
         }

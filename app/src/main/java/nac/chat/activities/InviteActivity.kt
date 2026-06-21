@@ -95,7 +95,15 @@ class InviteActivity : ComponentActivity() {
         setContent {
             InviteScreen(
                 inviteCode = inviteCode,
-                onFinish = { finish() }
+                onFinish = { finish() },
+                onJoinedServer = {
+                    // Already-signed-in joins never launched the main app at all - the
+                    // SwitchChannel action this fires has nobody listening for it, and once
+                    // this activity finishes there's nothing left on screen, dropping the
+                    // user straight back to the home screen even on a successful join.
+                    startActivity(Intent(this@InviteActivity, MainActivity::class.java))
+                    finish()
+                }
             )
         }
     }
@@ -153,6 +161,7 @@ class InviteViewModel : ViewModel() {
 fun InviteScreen(
     inviteCode: String?,
     onFinish: () -> Unit = {},
+    onJoinedServer: () -> Unit = onFinish,
     viewModel: InviteViewModel = viewModel()
 ) {
     LaunchedEffect(inviteCode) {
@@ -167,7 +176,7 @@ fun InviteScreen(
             viewModel.joinResult?.value?.channels?.firstOrNull()?.id?.let {
                 viewModel.navigateToServer(it)
             }
-            onFinish()
+            onJoinedServer()
         }
     }
 
@@ -287,7 +296,7 @@ fun InviteScreen(
                                             invite?.channelId?.let {
                                                 viewModel.navigateToServer(it)
                                             }
-                                            onFinish()
+                                            onJoinedServer()
                                         } else {
                                             viewModel.joinInvite(inviteCode)
                                         }
