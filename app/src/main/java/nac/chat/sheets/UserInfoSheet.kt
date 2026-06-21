@@ -469,36 +469,42 @@ fun UserInfoSheet(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                (server.roles ?: emptyMap())
-                    .toList()
-                    .sortedBy { (_, role) -> role.rank ?: 0.0 }
-                    .forEach { (roleId, role) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    pendingRoles = if (roleId in pendingRoles) {
-                                        pendingRoles - roleId
-                                    } else {
-                                        pendingRoles + roleId
+                Column(
+                    modifier = Modifier
+                        .weight(weight = 1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    (server.roles ?: emptyMap())
+                        .toList()
+                        .sortedBy { (_, role) -> role.rank ?: 0.0 }
+                        .forEach { (roleId, role) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        pendingRoles = if (roleId in pendingRoles) {
+                                            pendingRoles - roleId
+                                        } else {
+                                            pendingRoles + roleId
+                                        }
                                     }
-                                }
-                        ) {
-                            Checkbox(
-                                checked = roleId in pendingRoles,
-                                onCheckedChange = {
-                                    pendingRoles = if (it) pendingRoles + roleId else pendingRoles - roleId
-                                }
-                            )
-                            RoleListEntry(
-                                label = role.name ?: "null",
-                                brush = role.colour?.let { BrushCompat.parseColour(it) }
-                                    ?: Brush.solidColor(LocalContentColor.current),
-                                modifier = Modifier.weight(1f)
-                            )
+                            ) {
+                                Checkbox(
+                                    checked = roleId in pendingRoles,
+                                    onCheckedChange = {
+                                        pendingRoles = if (it) pendingRoles + roleId else pendingRoles - roleId
+                                    }
+                                )
+                                RoleListEntry(
+                                    label = role.name ?: "null",
+                                    brush = role.colour?.let { BrushCompat.parseColour(it) }
+                                        ?: Brush.solidColor(LocalContentColor.current),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
-                    }
+                }
 
                 Button(
                     onClick = {
