@@ -11,10 +11,13 @@ import nac.chat.core.model.schemas.User
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 
@@ -95,6 +98,29 @@ suspend fun leaveOrDeleteServer(serverId: String, leaveSilently: Boolean = false
     }
 }
 
+@Serializable
+data class MemberEditBody(val roles: List<String>? = null)
+
+suspend fun editMemberRoles(serverId: String, userId: String, roles: List<String>) {
+    val response = StoatHttp.patch("/servers/$serverId/members/$userId".api()) {
+        contentType(ContentType.Application.Json)
+        setBody(StoatJson.encodeToString(MemberEditBody.serializer(), MemberEditBody(roles)))
+    }
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response.bodyAsText())
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    StoatAPI.serverCache[serverId]?.let { server ->
+        StoatAPI.members.getMember(serverId, userId)?.let { member ->
+            StoatAPI.members.setMember(serverId, member.mergeWithPartial(member.copy(roles = roles)))
+        }
+    }
+}
+
 suspend fun kickMember(serverId: String, userId: String) {
     val response = StoatHttp.delete("/servers/$serverId/members/$userId".api())
 
@@ -113,6 +139,7 @@ data class BanCreationBody(val reason: String? = null)
 
 suspend fun banMember(serverId: String, userId: String, reason: String? = null) {
     val response = StoatHttp.put("/servers/$serverId/bans/$userId".api()) {
+        contentType(ContentType.Application.Json)
         setBody(StoatJson.encodeToString(BanCreationBody.serializer(), BanCreationBody(reason)))
     }
 

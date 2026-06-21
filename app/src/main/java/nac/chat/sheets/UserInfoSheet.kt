@@ -1,11 +1,13 @@
 package nac.chat.sheets
 
 import android.text.format.DateUtils
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,6 +18,8 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -29,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,8 +47,12 @@ import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.internals.BrushCompat
 import nac.chat.api.internals.Favorites
+import nac.chat.api.internals.PermissionBit
+import nac.chat.api.internals.Roles
 import nac.chat.api.internals.ULID
+import nac.chat.api.internals.has
 import nac.chat.api.internals.solidColor
+import nac.chat.api.routes.server.editMemberRoles
 import nac.chat.api.routes.user.fetchUserProfile
 import nac.chat.api.settings.Experiments
 import nac.chat.api.settings.FeatureFlags
@@ -51,12 +60,14 @@ import nac.chat.composables.chat.RoleListEntry
 import nac.chat.composables.chat.UserBadgeList
 import nac.chat.composables.chat.UserBadgeRow
 import nac.chat.composables.generic.NonIdealState
+import nac.chat.composables.generic.SheetButton
 import nac.chat.composables.generic.UserAvatar
 import nac.chat.composables.markdown.prose.ChatMarkdown
 import nac.chat.composables.screens.settings.RawUserOverview
 import nac.chat.composables.screens.settings.UserButtons
 import nac.chat.composables.sheets.SheetTile
 import nac.chat.core.model.schemas.Profile
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +82,13 @@ fun UserInfoSheet(
     val member = serverId?.let { StoatAPI.members.getMember(it, userId) }
 
     val server = StoatAPI.serverCache[serverId]
+
+    val selfPermissions = server?.let { srv ->
+        StoatAPI.selfId?.let { StoatAPI.members.getMember(srv.id ?: "", it) }
+            ?.let { Roles.permissionFor(srv, it) }
+    }
+    val canAssignRoles = server != null && selfPermissions has PermissionBit.AssignRoles
+    var showRoleEditSheet by remember { mutableStateOf(false) }
 
     var profile by remember { mutableStateOf<Profile?>(null) }
     var profileNotFound by remember { mutableStateOf(false) }
@@ -233,6 +251,14 @@ fun UserInfoSheet(
                 }
             }
         }
+        if (canAssignRoles && !(server?.roles.isNullOrEmpty())) {
+            item(key = "edit_roles", span = StaggeredGridItemSpan.FullLine) {
+                Button(onClick = { showRoleEditSheet = true }, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(R.string.user_info_sheet_edit_roles))
+                }
+            }
+        }
+
         val accountAt = user.id?.let {
             DateUtils.getRelativeTimeSpanString(
                 ULID.asTimestamp(user.id!!),
@@ -434,6 +460,75 @@ fun UserInfoSheet(
 
         item(key = "actions", span = StaggeredGridItemSpan.FullLine) {
             UserButtons(user, dismissSheet, serverId)
+        }
+    }
+
+    if (showRoleEditSheet && server != null) {
+        val scope = rememberCoroutineScope()
+        var pendingRoles by remember(member?.roles) {
+            mutableStateOf(member?.roles?.toSet() ?: emptySet())
+        }
+
+        ModalBottomSheet(
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            onDismissRequest = { showRoleEditSheet = false }
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(
+                    text = stringResource(R.string.user_info_sheet_edit_roles),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                (server.roles ?: emptyMap())
+                    .toList()
+                    .sortedBy { (_, role) -> role.rank ?: 0.0 }
+                    .forEach { (roleId, role) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    pendingRoles = if (roleId in pendingRoles) {
+                                        pendingRoles - roleId
+                                    } else {
+                                        pendingRoles + roleId
+                                    }
+                                }
+                        ) {
+                            Checkbox(
+                                checked = roleId in pendingRoles,
+                                onCheckedChange = {
+                                    pendingRoles = if (it) pendingRoles + roleId else pendingRoles - roleId
+                                }
+                            )
+                            RoleListEntry(
+                                label = role.name ?: "null",
+                                brush = role.colour?.let { BrushCompat.parseColour(it) }
+                                    ?: Brush.solidColor(LocalContentColor.current),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                Button(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                editMemberRoles(serverId ?: "", userId, pendingRoles.toList())
+                                showRoleEditSheet = false
+                            } catch (e: Exception) {
+                                // swallow - role list just won't update, sheet stays open for retry
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 16.dp)
+                ) {
+                    Text(stringResource(R.string.user_info_sheet_save_roles))
+                }
+            }
         }
     }
 
