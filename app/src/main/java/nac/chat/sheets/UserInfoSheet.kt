@@ -47,10 +47,7 @@ import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.internals.BrushCompat
 import nac.chat.api.internals.Favorites
-import nac.chat.api.internals.PermissionBit
-import nac.chat.api.internals.Roles
 import nac.chat.api.internals.ULID
-import nac.chat.api.internals.has
 import nac.chat.api.internals.solidColor
 import nac.chat.api.routes.server.editMemberRoles
 import nac.chat.api.routes.user.fetchUserProfile
@@ -60,7 +57,6 @@ import nac.chat.composables.chat.RoleListEntry
 import nac.chat.composables.chat.UserBadgeList
 import nac.chat.composables.chat.UserBadgeRow
 import nac.chat.composables.generic.NonIdealState
-import nac.chat.composables.generic.SheetButton
 import nac.chat.composables.generic.UserAvatar
 import nac.chat.composables.markdown.prose.ChatMarkdown
 import nac.chat.composables.screens.settings.RawUserOverview
@@ -83,11 +79,6 @@ fun UserInfoSheet(
 
     val server = StoatAPI.serverCache[serverId]
 
-    val selfPermissions = server?.let { srv ->
-        StoatAPI.selfId?.let { StoatAPI.members.getMember(srv.id ?: "", it) }
-            ?.let { Roles.permissionFor(srv, it) }
-    }
-    val canAssignRoles = server != null && selfPermissions has PermissionBit.AssignRoles
     var showRoleEditSheet by remember { mutableStateOf(false) }
 
     var profile by remember { mutableStateOf<Profile?>(null) }
@@ -251,14 +242,6 @@ fun UserInfoSheet(
                 }
             }
         }
-        if (canAssignRoles && !(server?.roles.isNullOrEmpty())) {
-            item(key = "edit_roles", span = StaggeredGridItemSpan.FullLine) {
-                Button(onClick = { showRoleEditSheet = true }, modifier = Modifier.padding(top = 4.dp)) {
-                    Text(stringResource(R.string.user_info_sheet_edit_roles))
-                }
-            }
-        }
-
         val accountAt = user.id?.let {
             DateUtils.getRelativeTimeSpanString(
                 ULID.asTimestamp(user.id!!),
@@ -459,7 +442,7 @@ fun UserInfoSheet(
         }
 
         item(key = "actions", span = StaggeredGridItemSpan.FullLine) {
-            UserButtons(user, dismissSheet, serverId)
+            UserButtons(user, dismissSheet, serverId, onEditRoles = { showRoleEditSheet = true })
         }
     }
 

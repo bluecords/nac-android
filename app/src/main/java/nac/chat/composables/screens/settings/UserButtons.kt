@@ -59,7 +59,8 @@ import logcat.logcat
 fun UserButtons(
     user: User,
     dismissSheet: suspend () -> Unit,
-    serverId: String? = null
+    serverId: String? = null,
+    onEditRoles: (() -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -112,6 +113,15 @@ fun UserButtons(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (server != null && onEditRoles != null && selfPermissions has PermissionBit.AssignRoles) {
+            Button(
+                onClick = onEditRoles,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.user_info_sheet_edit_roles))
+            }
+        }
+
         when (user.relationship) {
             "None" -> {
                 if (user.bot == null) {
