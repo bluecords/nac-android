@@ -442,6 +442,8 @@
     <string name="user_info_sheet_category_roles">Roles</string>
     <string name="user_info_sheet_edit_roles">Edit Roles</string>
     <string name="user_info_sheet_save_roles">Save</string>
+    <string name="user_info_sheet_roles_saved">Roles updated</string>
+    <string name="user_info_sheet_roles_save_failed">Couldn\'t save roles. Please try again.</string>
     <string name="user_info_sheet_category_joined">Joined</string>
     <string name="user_info_sheet_category_joined_stoat" translatable="false">NAC</string>
     <string name="user_info_sheet_category_badges">Badges</string>

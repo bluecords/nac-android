@@ -1,6 +1,7 @@
 package nac.chat.sheets
 
 import android.text.format.DateUtils
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,6 +67,9 @@ import nac.chat.composables.sheets.SheetTile
 import nac.chat.core.model.schemas.Profile
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
+import logcat.LogPriority
+import logcat.asLog
+import logcat.logcat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -448,6 +453,7 @@ fun UserInfoSheet(
 
     if (showRoleEditSheet && server != null) {
         val scope = rememberCoroutineScope()
+        val context = LocalContext.current
         var pendingRoles by remember(member?.roles) {
             mutableStateOf(member?.roles?.toSet() ?: emptySet())
         }
@@ -499,9 +505,19 @@ fun UserInfoSheet(
                         scope.launch {
                             try {
                                 editMemberRoles(serverId ?: "", userId, pendingRoles.toList())
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.user_info_sheet_roles_saved),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 showRoleEditSheet = false
                             } catch (e: Exception) {
-                                // swallow - role list just won't update, sheet stays open for retry
+                                logcat(LogPriority.ERROR) { e.asLog() }
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.user_info_sheet_roles_save_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     },
