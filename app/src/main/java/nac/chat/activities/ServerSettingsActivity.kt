@@ -48,9 +48,16 @@ class ServerSettingsActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.Transparent.toArgb()
 
-        val settingsUrl = "https://community.nac.social/server/$serverId/settings"
         val sessionToken = StoatAPI.sessionToken
         val userId = StoatAPI.selfId ?: ""
+        // webview_token/webview_user are consumed once by Auth.hydrate() on
+        // the web side (nac-web#41) and stripped from the URL immediately —
+        // replaces a previous approach that poked localforage's IndexedDB
+        // record directly, which depended on guessing its internal DB/store
+        // names and key shape.
+        val settingsUrl =
+            "https://community.nac.social/server/$serverId/settings" +
+                "?webview_token=$sessionToken&webview_user=$userId"
 
         setContent {
             NACTheme(
@@ -90,40 +97,7 @@ class ServerSettingsActivity : ComponentActivity() {
                                     settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
                                     clearCache(true)
 
-                                    var injected = false
-
                                     webViewClient = object : WebViewClient() {
-                                        override fun onPageFinished(view: WebView?, url: String?) {
-                                            super.onPageFinished(view, url)
-                                            if (!injected) {
-                                                injected = true
-                                                val authJson = """{"session":{"_id":"android-session","token":"$sessionToken","userId":"$userId","valid":true}}"""
-                                                val js = """
-                                                    (function() {
-                                                        // localforage stores real JS objects in IndexedDB, not
-                                                        // JSON strings - storing the raw string here means the
-                                                        // web app's Auth store schema check (clean()) sees a
-                                                        // string where it expects an object and treats it as
-                                                        // no session at all, landing on the public login page.
-                                                        var authData = JSON.parse('$authJson');
-                                                        var req = indexedDB.open('localforage');
-                                                        req.onupgradeneeded = function(e) {
-                                                            e.target.result.createObjectStore('keyvaluepairs');
-                                                        };
-                                                        req.onsuccess = function(e) {
-                                                            var db = e.target.result;
-                                                            try {
-                                                                var tx = db.transaction('keyvaluepairs', 'readwrite');
-                                                                tx.objectStore('keyvaluepairs').put(authData, 'auth');
-                                                                tx.oncomplete = function() { window.location.href = '$settingsUrl'; };
-                                                            } catch(err) {}
-                                                        };
-                                                    })();
-                                                """.trimIndent()
-                                                view?.evaluateJavascript(js, null)
-                                            }
-                                        }
-
                                         override fun shouldOverrideUrlLoading(
                                             view: WebView?,
                                             request: WebResourceRequest?
