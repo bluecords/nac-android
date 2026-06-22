@@ -428,3 +428,13 @@ suspend fun deleteWebhook(webhookId: String, token: String) {
     StoatHttp.delete("/webhooks/$webhookId/$token".api())
     StoatAPI.webhookCache.remove(webhookId)
 }
+
+suspend fun pinMessage(channelId: String, messageId: String) {
+    StoatHttp.post("/channels/$channelId/messages/$messageId/pin".api())
+    StoatAPI.messageCache[messageId]?.let { StoatAPI.messageCache[messageId] = it.copy(pinned = true) }
+}
+
+suspend fun unpinMessage(channelId: String, messageId: String) {
+    StoatHttp.delete("/channels/$channelId/messages/$messageId/pin".api())
+    StoatAPI.messageCache[messageId]?.let { StoatAPI.messageCache[messageId] = it.copy(pinned = false) }
+}

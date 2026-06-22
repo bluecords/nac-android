@@ -40,12 +40,18 @@ import nac.chat.api.internals.PermissionBit
 import nac.chat.api.internals.Roles
 import nac.chat.api.internals.has
 import nac.chat.api.routes.channel.deleteMessage
+import nac.chat.api.routes.channel.pinMessage
 import nac.chat.api.routes.channel.react
+import nac.chat.api.routes.channel.unpinMessage
 import nac.chat.callbacks.UiCallbacks
 import nac.chat.composables.chat.Message
 import nac.chat.composables.generic.SheetButton
 import nac.chat.core.model.data.STOAT_WEB_APP
+import nac.chat.core.model.schemas.ChannelType
 import nac.chat.internals.Platform
+import logcat.LogPriority
+import logcat.asLog
+import logcat.logcat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -448,6 +454,51 @@ fun MessageContextSheet(
             val channel = StoatAPI.channelCache[it] ?: return@let null
             Roles.permissionFor(channel, StoatAPI.userCache[StoatAPI.selfId])
         } ?: 0) has PermissionBit.ManageMessages
+
+        val canPin = hasManageMessages ||
+            message.channel?.let { StoatAPI.channelCache[it]?.channelType } == ChannelType.DirectMessage
+
+        if (canPin) {
+            SheetButton(
+                leadingContent = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pinboard_24dp),
+                        contentDescription = null
+                    )
+                },
+                headlineContent = {
+                    Text(
+                        text = stringResource(
+                            id = if (message.pinned == true) {
+                                R.string.message_context_sheet_actions_unpin
+                            } else {
+                                R.string.message_context_sheet_actions_pin
+                            }
+                        ),
+                    )
+                },
+                onClick = {
+                    val channelId = message.channel ?: return@SheetButton
+                    coroutineScope.launch {
+                        try {
+                            if (message.pinned == true) {
+                                unpinMessage(channelId, messageId)
+                            } else {
+                                pinMessage(channelId, messageId)
+                            }
+                        } catch (e: Exception) {
+                            logcat(LogPriority.ERROR) { e.asLog() }
+                            Toast.makeText(
+                                context,
+                                resources.getString(R.string.message_context_sheet_actions_pin_failed),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        onHideSheet()
+                    }
+                }
+            )
+        }
 
         if (hasManageMessages) {
             val serverHasMultipleChannels = message.channel?.let { ch ->
