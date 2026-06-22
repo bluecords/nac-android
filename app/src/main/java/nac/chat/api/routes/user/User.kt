@@ -14,6 +14,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -144,6 +145,27 @@ suspend fun addUserIfUnknown(id: String) {
     if (StoatAPI.userCache[id] == null) {
         StoatAPI.userCache[id] = fetchUser(id)
     }
+}
+
+@Serializable
+data class MutualResponse(
+    val users: List<String> = emptyList(),
+    val servers: List<String> = emptyList(),
+    val channels: List<String> = emptyList()
+)
+
+suspend fun fetchMutual(id: String): MutualResponse {
+    val response = StoatHttp.get("/users/$id/mutual".api())
+        .bodyAsText()
+
+    try {
+        val error = StoatJson.decodeFromString(StoatAPIError.serializer(), response)
+        throw Exception(error.type)
+    } catch (e: SerializationException) {
+        // Not an error
+    }
+
+    return StoatJson.decodeFromString(MutualResponse.serializer(), response)
 }
 
 suspend fun fetchUserProfile(id: String): Profile {

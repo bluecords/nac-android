@@ -52,7 +52,9 @@ import nac.chat.api.internals.Favorites
 import nac.chat.api.internals.ULID
 import nac.chat.api.internals.solidColor
 import nac.chat.api.routes.server.editMemberRoles
+import nac.chat.api.routes.user.fetchMutual
 import nac.chat.api.routes.user.fetchUserProfile
+import nac.chat.api.routes.user.getOrFetchUser
 import nac.chat.api.settings.Experiments
 import nac.chat.api.settings.FeatureFlags
 import nac.chat.composables.chat.RoleListEntry
@@ -65,6 +67,7 @@ import nac.chat.composables.screens.settings.RawUserOverview
 import nac.chat.composables.screens.settings.UserButtons
 import nac.chat.composables.sheets.SheetTile
 import nac.chat.core.model.schemas.Profile
+import nac.chat.core.model.schemas.User
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import logcat.LogPriority
@@ -88,6 +91,7 @@ fun UserInfoSheet(
 
     var profile by remember { mutableStateOf<Profile?>(null) }
     var profileNotFound by remember { mutableStateOf(false) }
+    var mutualFriends by remember { mutableStateOf<List<User>>(emptyList()) }
 
     LaunchedEffect(user) {
         try {
@@ -97,6 +101,27 @@ fun UserInfoSheet(
                 profileNotFound = true
             }
             e.printStackTrace()
+        }
+    }
+
+    LaunchedEffect(user) {
+        val id = user?.id
+        if (id == null || id == StoatAPI.selfId || user?.bot != null) {
+            mutualFriends = emptyList()
+            return@LaunchedEffect
+        }
+
+        try {
+            val mutual = fetchMutual(id)
+            mutualFriends = mutual.users.mapNotNull { userId ->
+                try {
+                    getOrFetchUser(userId)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR) { e.asLog() }
         }
     }
 
@@ -247,6 +272,51 @@ fun UserInfoSheet(
                 }
             }
         }
+        if (mutualFriends.isNotEmpty()) {
+            item(key = "mutual-friends") {
+                SheetTile(
+                    header = {
+                        Text(stringResource(R.string.user_info_sheet_category_mutual_friends))
+                    },
+                    contentPreview = {
+                        Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+                            mutualFriends.take(5).forEach { friend ->
+                                UserAvatar(
+                                    username = friend.displayName ?: friend.username
+                                    ?: stringResource(R.string.unknown),
+                                    avatar = friend.avatar,
+                                    userId = friend.id ?: "",
+                                    size = 24.dp
+                                )
+                            }
+                        }
+                    }
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        mutualFriends.forEach { friend ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                UserAvatar(
+                                    username = friend.displayName ?: friend.username
+                                    ?: stringResource(R.string.unknown),
+                                    avatar = friend.avatar,
+                                    userId = friend.id ?: "",
+                                    size = 32.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = friend.displayName ?: friend.username
+                                    ?: stringResource(R.string.unknown),
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         val accountAt = user.id?.let {
             DateUtils.getRelativeTimeSpanString(
                 ULID.asTimestamp(user.id!!),
