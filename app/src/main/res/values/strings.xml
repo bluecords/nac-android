@@ -890,6 +890,7 @@
     <string name="channel_settings_permissions_save">Save permissions</string>
     <string name="channel_settings_permissions_saved">Permissions updated</string>
     <string name="channel_settings_permissions_save_failed">Couldn\'t save permissions. Please try again.</string>
+    <string name="channel_settings_permissions_load_failed">Couldn\'t load this channel\'s permissions. Please try again.</string>
     <string name="channel_settings_permission_allow">Allow</string>
     <string name="channel_settings_permission_neutral">Neutral</string>
     <string name="channel_settings_permission_deny">Deny</string>

@@ -25,6 +25,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,7 @@ import androidx.navigation.NavController
 import nac.chat.R
 import nac.chat.activities.StoatTweenFloat
 import nac.chat.api.StoatAPI
+import nac.chat.api.routes.channel.fetchSingleChannel
 import nac.chat.api.routes.channel.setChannelPermissions
 import nac.chat.composables.generic.ListHeader
 import kotlinx.coroutines.launch
@@ -93,6 +95,26 @@ fun ChannelPermissionEditor(navController: NavController, channelId: String, rol
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // The cached channel can be stale or incomplete (e.g. another client
+    // changed permissions, or role_permissions was never fully loaded into
+    // this cache entry). setChannelPermissions sends a full-replace
+    // allow/deny mask, not a delta - editing from a stale snapshot and
+    // saving silently wipes any override this screen didn't load. Always
+    // re-fetch the channel fresh before allowing any edits. See nac-android#17.
+    var freshLoaded by remember(channelId) { mutableStateOf(false) }
+    var loadFailed by remember(channelId) { mutableStateOf(false) }
+
+    LaunchedEffect(channelId) {
+        try {
+            val fresh = fetchSingleChannel(channelId)
+            StoatAPI.channelCache[channelId] = fresh
+            freshLoaded = true
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR) { e.asLog() }
+            loadFailed = true
+        }
+    }
+
     val initialAllow = if (roleId == "default") {
         channel?.defaultPermissions?.a ?: 0L
     } else {
@@ -139,7 +161,7 @@ fun ChannelPermissionEditor(navController: NavController, channelId: String, rol
         },
         floatingActionButton = {
             AnimatedVisibility(
-                visible = unsavedChanges && !saving,
+                visible = freshLoaded && unsavedChanges && !saving,
                 enter = scaleIn(animationSpec = StoatTweenFloat),
                 exit = scaleOut(animationSpec = StoatTweenFloat)
             ) {
@@ -174,7 +196,14 @@ fun ChannelPermissionEditor(navController: NavController, channelId: String, rol
         }
     ) { pv ->
         Box(Modifier.padding(pv)) {
-            if (channel == null) {
+            if (loadFailed) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = stringResource(R.string.channel_settings_permissions_load_failed),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            } else if (channel == null || !freshLoaded) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
