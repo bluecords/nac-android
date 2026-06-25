@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import nac.chat.R
 import nac.chat.services.VoiceCallService
@@ -92,15 +93,6 @@ class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {
         return room ?: LiveKit.create(context.applicationContext).also { room = it }
     }
 
-    var voiceLkNode by mutableStateOf("")
-    private val _voiceToken = mutableStateOf(state.get<String>("voiceToken") ?: "")
-    var voiceToken: String
-        get() = _voiceToken.value
-        private set(value) {
-            _voiceToken.value = value
-            state["voiceToken"] = value
-        }
-
     var errorResource by mutableStateOf<Int?>(null)
         private set
 
@@ -108,43 +100,65 @@ class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {
         errorResource = R.string.voice_error_connect_timeout
     }
 
-    suspend fun getVoiceToken() {
-        errorResource = null
+    // Connects the (retained) Room to the voice channel, driven imperatively from the
+    // ViewModel instead of via RoomScope's Compose-managed auto-connect. The Room is reused
+    // across rejoins (it outlives any single VoiceSheet composition), and tying connect() to
+    // recomposition/Compose keys was the root cause of nac-android#19: on a second join the
+    // library's connect effect never re-fired, so room.connect() was simply never called and
+    // the call silently timed out (confirmed via debug-build logcat - exactly one
+    // room.connect for two joins). Here we fetch a fresh token and call room.connect()
+    // directly every time the sheet is (re)entered. Runs in viewModelScope so it isn't
+    // cancelled if the composition recomposes mid-connect.
+    fun connect(context: Context) {
+        viewModelScope.launch {
+            errorResource = null
+            val room = ensureRoom(context)
 
-        val root: Root
-        try {
-            root = getRootRoute()
-        } catch (e: Exception) {
-            logcat(LogPriority.ERROR) { "Could not get root route\n" + e.asLog() }
-            errorResource = R.string.voice_error_generic
-            return
-        }
-
-        val lk = root.features.livekit
-
-        if (lk == null) {
-            logcat(LogPriority.ERROR) {
-                IllegalStateException("LiveKit is not supported by this API version!").asLog()
+            if (room.state == Room.State.CONNECTED || room.state == Room.State.CONNECTING) {
+                logcat { "connect() requested but room is already ${room.state}; skipping" }
+                return@launch
             }
-            errorResource = R.string.voice_error_not_supported
-            return
-        }
 
-        if (lk.nodes.isEmpty()) {
-            logcat(LogPriority.ERROR) { IllegalStateException("No LiveKit nodes available!").asLog() }
-            errorResource = R.string.voice_error_no_nodes
-            return
-        }
+            val root: Root
+            try {
+                root = getRootRoute()
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR) { "Could not get root route\n" + e.asLog() }
+                errorResource = R.string.voice_error_generic
+                return@launch
+            }
 
-        val node = lk.nodes.random()
-        try {
-            val joined = joinCall(channelId, node.name)
-            voiceLkNode = joined.url
-            voiceToken = joined.token
-        } catch (e: Exception) {
-            logcat(LogPriority.ERROR) { "Could not get LiveKit token\n" + e.asLog() }
-            errorResource = R.string.voice_error_generic
-            return
+            val lk = root.features.livekit
+            if (lk == null) {
+                logcat(LogPriority.ERROR) {
+                    IllegalStateException("LiveKit is not supported by this API version!").asLog()
+                }
+                errorResource = R.string.voice_error_not_supported
+                return@launch
+            }
+            if (lk.nodes.isEmpty()) {
+                logcat(LogPriority.ERROR) { IllegalStateException("No LiveKit nodes available!").asLog() }
+                errorResource = R.string.voice_error_no_nodes
+                return@launch
+            }
+
+            val node = lk.nodes.random()
+            val joined = try {
+                joinCall(channelId, node.name)
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR) { "Could not get LiveKit token\n" + e.asLog() }
+                errorResource = R.string.voice_error_generic
+                return@launch
+            }
+
+            try {
+                logcat { "Connecting room to ${joined.url} (channel=$channelId, state-before=${room.state})" }
+                room.connect(joined.url, joined.token)
+                logcat { "room.connect() completed (state-after=${room.state})" }
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR) { "room.connect() failed\n" + e.asLog() }
+                errorResource = R.string.voice_error_connect_timeout
+            }
         }
     }
 
@@ -161,20 +175,23 @@ fun VoiceSheet(
     onDisconnect: () -> Unit,
     viewModel: VoiceSheetViewModel = viewModel()
 ) {
-    LaunchedEffect(channelId) {
-        viewModel.channelId = channelId
-        viewModel.getVoiceToken()
-    }
-
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    LaunchedEffect(channelId) {
+        viewModel.channelId = channelId
+        viewModel.connect(context)
+    }
+
+    // connect = false: the ViewModel drives room.connect()/disconnect() imperatively (see
+    // VoiceSheetViewModel.connect and nac-android#19). RoomScope here only provides the
+    // retained Room via RoomLocal; it must not manage the connection lifecycle itself, or it
+    // would disconnect the call whenever this composition leaves (e.g. backgrounding) and
+    // re-introduce the rejoin race.
     RoomScope(
-        url = viewModel.voiceLkNode,
-        token = viewModel.voiceToken,
         audio = true,
         video = false,
-        connect = true,
+        connect = false,
         passedRoom = viewModel.ensureRoom(context),
     ) {
         val room = RoomLocal.current
