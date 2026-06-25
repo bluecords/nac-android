@@ -86,7 +86,7 @@ class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {
     // disconnected and later reconnected without releasing its native resources - that's
     // the supported pattern. Keep one Room alive for this ViewModel's lifetime (it already
     // survives across rejoins) and pass it into RoomScope as passedRoom instead of letting
-    // a fresh Room get created and released on every join. See nac-android#20.
+    // a fresh Room get created and released on every join. See nac-android#19.
     private var room: Room? = null
     fun ensureRoom(context: Context): Room {
         return room ?: LiveKit.create(context.applicationContext).also { room = it }
@@ -203,7 +203,7 @@ fun VoiceSheet(
                             // UI - calling onDisconnect() in the same instant as setting the
                             // error meant the error text never got a chance to render, so a
                             // failed rejoin looked like it silently dumped you back out with
-                            // no explanation. See nac-android#20.
+                            // no explanation. See nac-android#19.
                             viewModel.setConnectTimeout()
                             delay(3_000)
                             onDisconnect()

@@ -827,7 +827,7 @@ fun AppEntrypoint(
                                 // Keyed on voiceJoinAttempt so rejoining the same channel
                                 // always gets a fully fresh VoiceSheet/RoomScope/viewModel()
                                 // instance rather than possibly stale state from the
-                                // previous call - see nac-android#20.
+                                // previous call - see nac-android#19.
                                 key(voiceJoinAttempt) {
                                     VoiceSheet(
                                         it,
