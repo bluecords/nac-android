@@ -50,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -458,6 +459,11 @@ fun AppEntrypoint(
 ) {
     var showVoiceUI by rememberSaveable { mutableStateOf(false) }
     var voiceChannelId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Rejoining the same channel right after hanging up can otherwise hand VoiceSheet
+    // back stale viewModel()/RoomScope state instead of a truly fresh one, so the new
+    // join token never actually gets used to connect - the join silently times out.
+    // Bumping this on every join forces a brand-new composable instance each time.
+    var voiceJoinAttempt by rememberSaveable { mutableStateOf(0) }
 
     val chatUIScale by animateFloatAsState(
         if (showVoiceUI) 0.8f else 1.0f,
@@ -646,6 +652,7 @@ fun AppEntrypoint(
                             onEnterVoiceUI = { channelId ->
                                 showVoiceUI = true
                                 voiceChannelId = channelId
+                                voiceJoinAttempt++
                             },
                         )
                     }
@@ -817,21 +824,27 @@ fun AppEntrypoint(
                         ) {
                             val voiceServiceContext = LocalContext.current
                             voiceChannelId?.let {
-                                VoiceSheet(
-                                    it,
-                                    onDisconnect = {
-                                        // Stop this directly and immediately, rather than relying
-                                        // on a reactive roomState listener that gets torn down in
-                                        // the same composition pass as everything else below -
-                                        // that race is exactly why the "Voice call active"
-                                        // notification was sticking around after hanging up.
-                                        voiceServiceContext.stopService(
-                                            Intent(voiceServiceContext, VoiceCallService::class.java)
-                                        )
-                                        showVoiceUI = false
-                                        voiceChannelId = null
-                                    }
-                                )
+                                // Keyed on voiceJoinAttempt so rejoining the same channel
+                                // always gets a fully fresh VoiceSheet/RoomScope/viewModel()
+                                // instance rather than possibly stale state from the
+                                // previous call - see nac-android#20.
+                                key(voiceJoinAttempt) {
+                                    VoiceSheet(
+                                        it,
+                                        onDisconnect = {
+                                            // Stop this directly and immediately, rather than relying
+                                            // on a reactive roomState listener that gets torn down in
+                                            // the same composition pass as everything else below -
+                                            // that race is exactly why the "Voice call active"
+                                            // notification was sticking around after hanging up.
+                                            voiceServiceContext.stopService(
+                                                Intent(voiceServiceContext, VoiceCallService::class.java)
+                                            )
+                                            showVoiceUI = false
+                                            voiceChannelId = null
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

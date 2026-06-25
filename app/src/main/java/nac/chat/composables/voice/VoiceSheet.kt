@@ -1,5 +1,6 @@
 package nac.chat.composables.voice
 
+import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -54,6 +55,7 @@ import nac.chat.api.StoatAPI
 import nac.chat.api.routes.misc.Root
 import nac.chat.api.routes.misc.getRootRoute
 import nac.chat.api.routes.voice.joinCall
+import io.livekit.android.LiveKit
 import io.livekit.android.compose.local.RoomLocal
 import io.livekit.android.compose.local.RoomScope
 import io.livekit.android.compose.state.rememberTracks
@@ -74,6 +76,21 @@ class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {
             _channelId.value = value
             state["channelId"] = value
         }
+
+    // Recreating a brand-new LiveKit Room (and its native audio/RTC resources) on every
+    // single join was unreliable - the first join after a clean disconnect would work,
+    // but a second join's Room would silently never finish connecting (stuck at
+    // CONNECTING, no signaling attempt ever reached the server - confirmed via server-side
+    // logs showing zero connection activity for the retry). Room.disconnect() and
+    // Room.release() are deliberately separate in the SDK specifically so a Room can be
+    // disconnected and later reconnected without releasing its native resources - that's
+    // the supported pattern. Keep one Room alive for this ViewModel's lifetime (it already
+    // survives across rejoins) and pass it into RoomScope as passedRoom instead of letting
+    // a fresh Room get created and released on every join. See nac-android#20.
+    private var room: Room? = null
+    fun ensureRoom(context: Context): Room {
+        return room ?: LiveKit.create(context.applicationContext).also { room = it }
+    }
 
     var voiceLkNode by mutableStateOf("")
     private val _voiceToken = mutableStateOf(state.get<String>("voiceToken") ?: "")
@@ -130,6 +147,11 @@ class VoiceSheetViewModel(private val state: SavedStateHandle) : ViewModel() {
             return
         }
     }
+
+    override fun onCleared() {
+        room?.release()
+        room = null
+    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -153,6 +175,7 @@ fun VoiceSheet(
         audio = true,
         video = false,
         connect = true,
+        passedRoom = viewModel.ensureRoom(context),
     ) {
         val room = RoomLocal.current
         val roomState by room::state.flow.collectAsState()
@@ -176,7 +199,13 @@ fun VoiceSheet(
                     LaunchedEffect(roomState) {
                         if (roomState == Room.State.CONNECTING) {
                             delay(20_000)
+                            // Show the timeout error for a moment before tearing down the
+                            // UI - calling onDisconnect() in the same instant as setting the
+                            // error meant the error text never got a chance to render, so a
+                            // failed rejoin looked like it silently dumped you back out with
+                            // no explanation. See nac-android#20.
                             viewModel.setConnectTimeout()
+                            delay(3_000)
                             onDisconnect()
                         }
                     }
