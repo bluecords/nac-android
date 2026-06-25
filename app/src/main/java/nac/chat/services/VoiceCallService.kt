@@ -55,7 +55,7 @@ class VoiceCallService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_monochrome)
+            .setSmallIcon(R.drawable.ic_chat_24dp)
             .setContentTitle(getString(R.string.voice_call_notification_title))
             .setContentText(getString(R.string.voice_call_notification_body))
             .setContentIntent(openIntent)
