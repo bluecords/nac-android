@@ -53,6 +53,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.SocketException
 import nac.chat.core.model.schemas.Channel as ChannelSchema
 
@@ -121,7 +123,21 @@ val StoatHttp = HttpClient(OkHttp) {
                     }
                 }
                 .build()
-            chain.proceed(request)
+            val response = chain.proceed(request)
+
+            // Server rejects this client's app version - surface the blocking
+            // update screen regardless of which call site this was.
+            if (response.code == 426) {
+                runCatching {
+                    val body = response.peekBody(Long.MAX_VALUE).string()
+                    val minVersion = StoatJson.parseToJsonElement(body)
+                        .jsonObject["min_version"]?.jsonPrimitive?.content
+                    UpgradeRequiredState.minVersion.value = minVersion
+                }
+                UpgradeRequiredState.isRequired.value = true
+            }
+
+            response
         }
         addInterceptor(chuckerInterceptor)
     }
@@ -129,6 +145,9 @@ val StoatHttp = HttpClient(OkHttp) {
     defaultRequest {
         url(STOAT_BASE)
         header("User-Agent", buildUserAgent())
+        // Real app build version, separate from the free-text User-Agent string -
+        // the server uses this to reject clients below its configured minimum.
+        header("X-Client-Version", BuildConfig.VERSION_NAME)
     }
 }
 
