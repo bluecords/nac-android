@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
@@ -16,6 +17,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseInOutExpo
@@ -80,6 +82,7 @@ import nac.chat.NACApplication
 import nac.chat.api.HitRateLimitException
 import nac.chat.api.StoatAPI
 import nac.chat.api.StoatHttp
+import nac.chat.api.UpgradeRequiredState
 import nac.chat.api.api
 import nac.chat.api.routes.microservices.geo.queryGeo
 import nac.chat.api.routes.microservices.health.healthCheck
@@ -543,6 +546,39 @@ fun AppEntrypoint(
                                 }
                             ) {
                                 Text(stringResource(R.string.could_not_log_in_cta_logout))
+                            }
+                        }
+                    )
+                }
+
+                val isUpgradeRequired by UpgradeRequiredState.isRequired.collectAsState()
+                if (isUpgradeRequired) {
+                    val minVersion by UpgradeRequiredState.minVersion.collectAsState()
+                    val context = LocalContext.current
+
+                    // No onDismissRequest no-op is enough here - there is deliberately no
+                    // dismiss/cancel button at all, this must stay on screen until the
+                    // user updates, same intent as a forced Play Store update gate.
+                    AlertDialog(
+                        onDismissRequest = {},
+                        title = { Text("Update required") },
+                        text = {
+                            Text(
+                                if (minVersion != null) {
+                                    "An update is required to continue using NAC (minimum version $minVersion)."
+                                } else {
+                                    "An update is required to continue using NAC."
+                                }
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    CustomTabsIntent.Builder().build()
+                                        .launchUrl(context, Uri.parse("https://get.nac.social"))
+                                }
+                            ) {
+                                Text("Update now")
                             }
                         }
                     )

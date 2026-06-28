@@ -2,10 +2,12 @@ package nac.chat.api.realtime
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import nac.chat.BuildConfig
 import nac.chat.NACApplication
 import nac.chat.api.StoatAPI
 import nac.chat.api.StoatHttp
 import nac.chat.api.StoatJson
+import nac.chat.api.UpgradeRequiredState
 import nac.chat.api.realtime.frames.receivable.AnyFrame
 import nac.chat.api.realtime.frames.receivable.BulkFrame
 import nac.chat.api.realtime.frames.receivable.ChannelAckFrame
@@ -59,6 +61,8 @@ import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import logcat.logcat
 
 enum class DisconnectionState {
@@ -94,7 +98,12 @@ object RealtimeSocket {
 
         socket?.close(CloseReason(CloseReason.Codes.NORMAL, "Reconnecting to websocket."))
 
-        StoatHttp.ws(STOAT_WEBSOCKET) {
+        // Same X-Client-Version contract as REST, but the gateway handshake
+        // only has query params to work with - server rejects/closes if below
+        // its configured minimum.
+        val websocketUrl = "$STOAT_WEBSOCKET?client_version=${BuildConfig.VERSION_NAME}"
+
+        StoatHttp.ws(websocketUrl) {
             socket = this
 
             Log.d("RealtimeSocket", "Connected to websocket.")
@@ -916,6 +925,17 @@ object RealtimeSocket {
             "Authenticated" -> {
                 SyncedSettings.fetch()
                 LoadedSettings.hydrateWithSettings(SyncedSettings)
+            }
+
+            "Error" -> {
+                val errorObject = StoatJson.parseToJsonElement(rawFrame).jsonObject
+                val errorType = errorObject["data"]?.jsonObject?.get("type")?.jsonPrimitive?.content
+                if (errorType == "UpgradeRequired") {
+                    val minVersion = errorObject["data"]?.jsonObject?.get("min_version")
+                        ?.jsonPrimitive?.content
+                    UpgradeRequiredState.minVersion.value = minVersion
+                    UpgradeRequiredState.isRequired.value = true
+                }
             }
 
             else -> {
