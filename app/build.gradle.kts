@@ -150,6 +150,25 @@ android {
     }
 }
 
+// Pin a stable, predictably-named copy of the release APK so the get.nac.social
+// landing page's hardcoded download link (NAC.apk) never drifts from what's
+// actually uploaded to a release again - this caused a real 404 for users
+// (nac-android#23). The legacy applicationVariants output-renaming API was
+// removed in AGP 9, so this just copies the package task's output instead.
+tasks.register<Copy>("copyReleaseApkAsNac") {
+    dependsOn("assembleRelease")
+    from(layout.buildDirectory.dir("outputs/apk/release"))
+    include("*.apk")
+    into(layout.buildDirectory.dir("outputs/apk/release-renamed"))
+    rename { "NAC.apk" }
+}
+
+afterEvaluate {
+    tasks.named("assembleRelease") {
+        finalizedBy("copyReleaseApkAsNac")
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
