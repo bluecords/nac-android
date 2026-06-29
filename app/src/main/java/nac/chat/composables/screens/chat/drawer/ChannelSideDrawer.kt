@@ -798,6 +798,7 @@ fun ChannelSideDrawer(
                     onDestinationChanged,
                     drawerState,
                     channelListState,
+                    topNav,
                     onOpenChannelContextSheet = { channelContextSheetTarget = it }
                 )
             } else {
@@ -824,6 +825,7 @@ fun ColumnScope.DirectMessagesChannelListRenderer(
     onDestinationChanged: (ChatRouterDestination) -> Unit,
     drawerState: DrawerState?,
     channelListState: LazyListState,
+    topNav: NavController,
     onOpenChannelContextSheet: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -877,6 +879,27 @@ fun ColumnScope.DirectMessagesChannelListRenderer(
                     }
                 },
                 hasUnread = FriendRequests.getIncoming().isNotEmpty(),
+                onOpenChannelContextSheet = {},
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+
+        item(key = "new_group") {
+            ChannelItem(
+                channel = Channel(
+                    id = "new_group",
+                    name = stringResource(R.string.friends_new_group),
+                    channelType = ChannelType.TextChannel
+                ),
+                iconType = ChannelItemIconType.Painter(painterResource(R.drawable.ic_group_add_24dp)),
+                isCurrent = false,
+                onDestinationChanged = {
+                    topNav.navigate("create/group")
+                    scope.launch {
+                        drawerState?.close()
+                    }
+                },
+                hasUnread = false,
                 onOpenChannelContextSheet = {},
             )
             Spacer(Modifier.height(4.dp))
