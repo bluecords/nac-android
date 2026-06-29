@@ -184,7 +184,14 @@ fun ChannelInfoSheet(channelId: String, onHideSheet: suspend () -> Unit) {
                             contentDescription = null
                         )
                     },
-                    onClick = {}
+                    onClick = {
+                        scope.launch {
+                            onHideSheet()
+                        }
+                        scope.launch {
+                            ActionChannel.send(Action.TopNavigate("channel/${channel.id}/add_member"))
+                        }
+                    }
                 )
             }
 

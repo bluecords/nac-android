@@ -209,6 +209,10 @@
     <string name="create_group_search">Search Friends</string>
     <string name="create_group_action">Create</string>
 
+    <string name="add_group_member_title">Add members</string>
+    <string name="add_group_member_search">Search Friends</string>
+    <string name="add_group_member_action">Add</string>
+
     <string name="server_plus_alt">Add server</string>
     <string name="discover_alt">Discover</string>
 

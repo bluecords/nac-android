@@ -104,6 +104,7 @@ import nac.chat.screens.about.AboutScreen
 import nac.chat.screens.about.AttributionScreen
 import nac.chat.screens.changelogs.ReadChangelogScreen
 import nac.chat.screens.chat.ChannelPinsScreen
+import nac.chat.screens.create.AddGroupMemberScreen
 import nac.chat.screens.chat.ChatRouterScreen
 import nac.chat.screens.chat.standalone.CatchUpScreen
 import nac.chat.screens.chat.views.channel.ChannelScreen
@@ -801,6 +802,11 @@ fun AppEntrypoint(
                     composable("channel/{channelId}/pins") { backStackEntry ->
                         val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
                         ChannelPinsScreen(navController, channelId)
+                    }
+
+                    composable("channel/{channelId}/add_member") { backStackEntry ->
+                        val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
+                        AddGroupMemberScreen(navController, channelId)
                     }
 
                     composable("about") { AboutScreen(navController) }
