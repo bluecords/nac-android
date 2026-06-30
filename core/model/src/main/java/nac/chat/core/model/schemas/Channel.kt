@@ -77,7 +77,11 @@ data class Channel(
     val defaultPermissions: PermissionDescription? = null,
     val nsfw: Boolean? = null,
     val voice: JsonElement? = null,
-    val type: String? = null // this is _only_ used for websocket events!
+    val type: String? = null, // this is _only_ used for websocket events!
+    @SerialName("allowed_tags")
+    val allowedTags: List<String>? = null,
+    @SerialName("solution_enabled")
+    val solutionEnabled: Boolean? = null,
 ) {
     fun mergeWithPartial(partial: Channel): Channel {
         return Channel(
@@ -96,7 +100,9 @@ data class Channel(
             rolePermissions = partial.rolePermissions ?: rolePermissions,
             defaultPermissions = partial.defaultPermissions ?: defaultPermissions,
             nsfw = partial.nsfw ?: nsfw,
-            type = partial.type ?: type
+            type = partial.type ?: type,
+            allowedTags = partial.allowedTags ?: allowedTags,
+            solutionEnabled = partial.solutionEnabled ?: solutionEnabled,
         )
     }
 }
@@ -107,7 +113,8 @@ enum class ChannelType(val value: String) {
     Group("Group"),
     SavedMessages("SavedMessages"),
     TextChannel("TextChannel"),
-    VoiceChannel("VoiceChannel");
+    VoiceChannel("VoiceChannel"),
+    ForumChannel("ForumChannel");
 
     companion object : KSerializer<ChannelType> {
         override val descriptor: SerialDescriptor
@@ -125,6 +132,7 @@ enum class ChannelType(val value: String) {
                 "SavedMessages" -> SavedMessages
                 "TextChannel" -> TextChannel
                 "VoiceChannel" -> VoiceChannel
+                "ForumChannel" -> ForumChannel
                 else -> throw IllegalArgumentException("ChannelType could not parse: $value")
             }
 

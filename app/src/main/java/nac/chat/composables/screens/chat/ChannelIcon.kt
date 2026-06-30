@@ -53,6 +53,14 @@ fun ChannelIcon(channelType: ChannelType, modifier: Modifier = Modifier) {
                 modifier = modifier
             )
         }
+
+        ChannelType.ForumChannel -> {
+            Icon(
+                painter = painterResource(R.drawable.ic_forum_24dp),
+                contentDescription = stringResource(R.string.channel_forum),
+                modifier = modifier
+            )
+        }
     }
 }
 

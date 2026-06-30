@@ -105,6 +105,8 @@ import nac.chat.screens.about.AttributionScreen
 import nac.chat.screens.changelogs.ReadChangelogScreen
 import nac.chat.screens.chat.ChannelPinsScreen
 import nac.chat.screens.create.AddGroupMemberScreen
+import nac.chat.screens.chat.views.forum.NewForumPostScreen
+import nac.chat.screens.chat.views.forum.ForumPostDetailScreen
 import nac.chat.screens.chat.ChatRouterScreen
 import nac.chat.screens.chat.standalone.CatchUpScreen
 import nac.chat.screens.chat.views.channel.ChannelScreen
@@ -807,6 +809,19 @@ fun AppEntrypoint(
                     composable("channel/{channelId}/add_member") { backStackEntry ->
                         val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
                         AddGroupMemberScreen(navController, channelId)
+                    }
+
+                    composable("forum/{channelId}/new_post") { backStackEntry ->
+                        val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
+                        val channel = StoatAPI.channelCache[channelId]
+                        if (channel != null) NewForumPostScreen(navController, channel)
+                    }
+
+                    composable("forum/{channelId}/post/{postId}") { backStackEntry ->
+                        val channelId = backStackEntry.arguments?.getString("channelId") ?: ""
+                        val postId = backStackEntry.arguments?.getString("postId") ?: ""
+                        val channel = StoatAPI.channelCache[channelId]
+                        if (channel != null) ForumPostDetailScreen(navController, channel, postId)
                     }
 
                     composable("about") { AboutScreen(navController) }

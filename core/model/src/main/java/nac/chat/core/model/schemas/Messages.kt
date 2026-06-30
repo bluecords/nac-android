@@ -27,7 +27,13 @@ data class Message(
      */
     val flags: Int? = null,
     val type: String? = null, // this is _only_ used for websocket events!
-    val tail: Boolean? = null // this is used to determine if the message is the last in a message group
+    val tail: Boolean? = null, // this is used to determine if the message is the last in a message group
+    @SerialName("forum_title")
+    val forumTitle: String? = null,
+    @SerialName("forum_tags")
+    val forumTags: List<String>? = null,
+    @SerialName("forum_solution")
+    val forumSolution: Boolean? = null,
 ) {
 
     fun mergeWithPartial(partial: Message): Message {

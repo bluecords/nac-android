@@ -114,7 +114,7 @@ object Autocomplete {
                 }
             }
 
-            ChannelType.TextChannel, ChannelType.VoiceChannel -> {
+            ChannelType.TextChannel, ChannelType.VoiceChannel, ChannelType.ForumChannel -> {
                 if (serverId == null) return emptyList()
                 if (query.length < 2) return emptyList()
 
