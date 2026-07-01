@@ -5,6 +5,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +82,7 @@ class ForumPostDetailViewModel : ViewModel() {
     var replyText by mutableStateOf("")
     var isSending by mutableStateOf(false)
     var editingMessageId by mutableStateOf<String?>(null)
+    val editingTags = mutableStateListOf<String>()
     var postDeleted by mutableStateOf(false)
 
     /**
@@ -133,6 +137,10 @@ class ForumPostDetailViewModel : ViewModel() {
                     else replies.firstOrNull { it.id == callback.messageId }) ?: return@onEach
                 editingMessageId = callback.messageId
                 replyText = target.content ?: ""
+                editingTags.clear()
+                if (callback.messageId == post?.id) {
+                    editingTags.addAll(post?.forumTags ?: emptyList())
+                }
             }
         }.collect {}
     }
@@ -140,17 +148,20 @@ class ForumPostDetailViewModel : ViewModel() {
     fun cancelEdit() {
         editingMessageId = null
         replyText = ""
+        editingTags.clear()
     }
 
     fun submitEdit(channelId: String) {
         val id = editingMessageId ?: return
         val text = replyText.trim()
+        val isPost = id == post?.id
+        val tags = if (isPost) editingTags.toList() else null
         viewModelScope.launch {
             try {
                 isSending = true
-                editMessage(channelId, id, text)
-                if (id == post?.id) {
-                    post = post?.copy(content = text)
+                editMessage(channelId, id, text, forumTags = tags)
+                if (isPost) {
+                    post = post?.copy(content = text, forumTags = tags)
                 } else {
                     val idx = replies.indexOfFirst { it.id == id }
                     if (idx >= 0) replies[idx] = replies[idx].copy(content = text)
@@ -242,7 +253,7 @@ class ForumPostDetailViewModel : ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ForumPostDetailScreen(
     navController: NavController,
@@ -307,6 +318,8 @@ fun ForumPostDetailScreen(
                 HorizontalDivider()
                 Spacer(Modifier.height(8.dp))
                 val isEditing = viewModel.editingMessageId != null
+                val isEditingPost = isEditing && viewModel.editingMessageId == viewModel.post?.id
+                val allowedTags = channel.allowedTags ?: emptyList()
                 if (isEditing) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -321,6 +334,22 @@ fun ForumPostDetailScreen(
                         TextButton(onClick = { viewModel.cancelEdit() }) {
                             Text(stringResource(R.string.cancel))
                         }
+                    }
+                    if (isEditingPost && allowedTags.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            allowedTags.forEach { tag ->
+                                val selected = viewModel.editingTags.contains(tag)
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = {
+                                        if (selected) viewModel.editingTags.remove(tag)
+                                        else viewModel.editingTags.add(tag)
+                                    },
+                                    label = { Text(tag) }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
                     }
                 }
                 Row(

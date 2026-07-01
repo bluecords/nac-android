@@ -89,7 +89,9 @@ data class SendMessageBody(
 
 @kotlinx.serialization.Serializable
 data class EditMessageBody(
-    val content: String?
+    val content: String?,
+    @kotlinx.serialization.SerialName("forum_tags")
+    val forumTags: List<String>? = null,
 )
 
 @kotlinx.serialization.Serializable
@@ -127,12 +129,18 @@ suspend fun sendMessage(
     return response
 }
 
-suspend fun editMessage(channelId: String, messageId: String, newContent: String? = null) {
+suspend fun editMessage(
+    channelId: String,
+    messageId: String,
+    newContent: String? = null,
+    forumTags: List<String>? = null,
+) {
     val response = StoatHttp.patch("/channels/$channelId/messages/$messageId".api()) {
         contentType(ContentType.Application.Json)
         setBody(
             EditMessageBody(
-                content = newContent
+                content = newContent,
+                forumTags = forumTags
             )
         )
     }
