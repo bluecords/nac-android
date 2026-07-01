@@ -80,12 +80,18 @@ data class SendMessageBody(
     val content: String,
     val nonce: String = ULID.makeNext(),
     val replies: List<SendMessageReply> = emptyList(),
-    val attachments: List<String>?
+    val attachments: List<String>?,
+    @kotlinx.serialization.SerialName("forum_title")
+    val forumTitle: String? = null,
+    @kotlinx.serialization.SerialName("forum_tags")
+    val forumTags: List<String>? = null,
 )
 
 @kotlinx.serialization.Serializable
 data class EditMessageBody(
-    val content: String?
+    val content: String?,
+    @kotlinx.serialization.SerialName("forum_tags")
+    val forumTags: List<String>? = null,
 )
 
 @kotlinx.serialization.Serializable
@@ -123,12 +129,18 @@ suspend fun sendMessage(
     return response
 }
 
-suspend fun editMessage(channelId: String, messageId: String, newContent: String? = null) {
+suspend fun editMessage(
+    channelId: String,
+    messageId: String,
+    newContent: String? = null,
+    forumTags: List<String>? = null,
+) {
     val response = StoatHttp.patch("/channels/$channelId/messages/$messageId".api()) {
         contentType(ContentType.Application.Json)
         setBody(
             EditMessageBody(
-                content = newContent
+                content = newContent,
+                forumTags = forumTags
             )
         )
     }
@@ -437,4 +449,39 @@ suspend fun pinMessage(channelId: String, messageId: String) {
 suspend fun unpinMessage(channelId: String, messageId: String) {
     StoatHttp.delete("/channels/$channelId/messages/$messageId/pin".api())
     StoatAPI.messageCache[messageId]?.let { StoatAPI.messageCache[messageId] = it.copy(pinned = false) }
+}
+
+suspend fun sendForumPost(
+    channelId: String,
+    title: String,
+    content: String,
+    tags: List<String> = emptyList(),
+): String {
+    val response = StoatHttp.post("/channels/$channelId/messages".api()) {
+        contentType(ContentType.Application.Json)
+        setBody(
+            SendMessageBody(
+                content = content,
+                attachments = null,
+                forumTitle = title,
+                forumTags = tags.ifEmpty { null },
+            )
+        )
+        header("Idempotency-Key", ULID.makeNext())
+    }.bodyAsText()
+    return response
+}
+
+suspend fun markSolution(channelId: String, messageId: String) {
+    StoatHttp.post("/channels/$channelId/messages/$messageId/solution".api())
+    StoatAPI.messageCache[messageId]?.let {
+        StoatAPI.messageCache[messageId] = it.copy(forumSolution = true)
+    }
+}
+
+suspend fun unmarkSolution(channelId: String, messageId: String) {
+    StoatHttp.delete("/channels/$channelId/messages/$messageId/solution".api())
+    StoatAPI.messageCache[messageId]?.let {
+        StoatAPI.messageCache[messageId] = it.copy(forumSolution = false)
+    }
 }

@@ -213,6 +213,25 @@
     <string name="add_group_member_search">Search Friends</string>
     <string name="add_group_member_action">Add</string>
 
+    <string name="channel_forum">Forum channel</string>
+    <string name="forum_new_post">New Post</string>
+    <string name="forum_post_title">Post Title</string>
+    <string name="forum_post_title_required">Title is required</string>
+    <string name="forum_post_content">What\'s on your mind?</string>
+    <string name="forum_post_tags">Tags</string>
+    <string name="forum_post_submit">Post</string>
+    <string name="forum_reply_placeholder">Write a reply…</string>
+    <string name="forum_reply_submit">Reply</string>
+    <string name="forum_mark_solution">Mark as Solution</string>
+    <string name="forum_unmark_solution">Unmark Solution</string>
+    <string name="delete">Delete</string>
+    <string name="message_actions">Message actions</string>
+    <string name="save">Save</string>
+    <string name="forum_editing">Editing message</string>
+    <string name="forum_solution_badge">Solution</string>
+    <string name="forum_replies">%1$d replies</string>
+    <string name="forum_no_posts">No posts yet. Be the first!</string>
+
     <string name="server_plus_alt">Add server</string>
     <string name="discover_alt">Discover</string>
 

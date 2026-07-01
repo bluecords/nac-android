@@ -79,7 +79,7 @@ object Roles {
             ChannelType.DirectMessage -> BitDefaults.DirectMessages
             ChannelType.Group -> if (channel.owner == user?.id) PermissionBit.GrantAllSafe.value else BitDefaults.DirectMessages
 
-            ChannelType.TextChannel, ChannelType.VoiceChannel -> {
+            ChannelType.TextChannel, ChannelType.VoiceChannel, ChannelType.ForumChannel -> {
                 val server = StoatAPI.serverCache[channel.server]
                 // FIXME this is a stupid patch to prevent it from showing "no permission" on a channel on launch
                     ?: return PermissionBit.GrantAllSafe.value

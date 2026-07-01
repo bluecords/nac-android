@@ -96,6 +96,8 @@ import nac.chat.screens.chat.views.FriendsScreen
 import nac.chat.screens.chat.views.NoCurrentChannelScreen
 import nac.chat.screens.chat.views.OverviewScreen
 import nac.chat.screens.chat.views.channel.ChannelScreen
+import nac.chat.screens.chat.views.forum.ForumScreen
+import nac.chat.core.model.schemas.ChannelType
 import nac.chat.sheets.AddServerSheet
 import nac.chat.sheets.EarlyAccessSheet
 import nac.chat.sheets.EmoteInfoSheet
@@ -1048,7 +1050,10 @@ fun ChannelNavigator(
 ) {
     val scope = rememberCoroutineScope()
 
-    BackHandler(useDrawer && !disableBackHandler) {
+    // Only consume back to close an open drawer. When the drawer is closed, let
+    // back propagate up to the Activity-level handler (moveTaskToBack) so the app
+    // backgrounds instead of looping open/closed between two screens.
+    BackHandler(useDrawer && !disableBackHandler && drawerState?.isOpen == true) {
         toggleDrawer()
     }
 
@@ -1071,22 +1076,30 @@ fun ChannelNavigator(
             }
 
             is ChatRouterDestination.Channel -> {
-                ChannelScreen(
-                    channelId = dest.channelId,
-                    onToggleDrawer = {
-                        scope.launch {
-                            if (drawerState?.isOpen == true) {
-                                drawerState.close()
-                            } else {
-                                drawerState?.open()
+                val channel = StoatAPI.channelCache[dest.channelId]
+                if (channel?.channelType == ChannelType.ForumChannel) {
+                    ForumScreen(
+                        navController = topNav,
+                        channel = channel,
+                    )
+                } else {
+                    ChannelScreen(
+                        channelId = dest.channelId,
+                        onToggleDrawer = {
+                            scope.launch {
+                                if (drawerState?.isOpen == true) {
+                                    drawerState.close()
+                                } else {
+                                    drawerState?.open()
+                                }
                             }
-                        }
-                    },
-                    useDrawer = useDrawer,
-                    drawerGestureEnabled = drawerGestureEnabled,
-                    setDrawerGestureEnabled = setDrawerGestureEnabled,
-                    drawerIsOpen = drawerState?.isOpen == true,
-                )
+                        },
+                        useDrawer = useDrawer,
+                        drawerGestureEnabled = drawerGestureEnabled,
+                        setDrawerGestureEnabled = setDrawerGestureEnabled,
+                        drawerIsOpen = drawerState?.isOpen == true,
+                    )
+                }
             }
 
             is ChatRouterDestination.NoCurrentChannel -> {

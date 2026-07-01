@@ -47,7 +47,7 @@ fun MoveToChannelSheet(
 ) {
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(false) }
+    var loadingChannelId by remember { mutableStateOf<String?>(null) }
 
     val server = remember {
         StoatAPI.serverCache.values.find { s ->
@@ -134,24 +134,28 @@ fun MoveToChannelSheet(
                         val channel = item.channel
                         if (channel.id == sourceChannelId) return@items
 
+                        val anyLoading = loadingChannelId != null
+                        val thisLoading = loadingChannelId == channel.id
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(enabled = !loading) {
-                                    loading = true
+                                .clickable(enabled = !anyLoading) {
+                                    val targetId = channel.id ?: return@clickable
+                                    loadingChannelId = targetId
                                     hostScope.launch {
                                         val result = moveMessage(
                                             messageId = messageId,
                                             sourceChannelId = sourceChannelId,
-                                            targetChannelId = channel.id ?: return@launch
+                                            targetChannelId = targetId
                                         )
                                         result
                                             .onSuccess {
                                                 onMoved()
                                             }
                                             .onFailure { e ->
-                                                loading = false
+                                                loadingChannelId = null
                                                 Toast.makeText(
                                                     context,
                                                     e.message ?: "Failed to move message",
@@ -162,7 +166,7 @@ fun MoveToChannelSheet(
                                 }
                                 .padding(vertical = 10.dp, horizontal = 4.dp)
                         ) {
-                            if (loading) {
+                            if (thisLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                             } else {
