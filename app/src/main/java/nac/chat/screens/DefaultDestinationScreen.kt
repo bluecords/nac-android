@@ -42,8 +42,9 @@ fun DefaultDestinationScreen(
             DynamicColors.applyToActivitiesIfAvailable(NACApplication.instance)
             activity.window.statusBarColor = Color.Transparent.toArgb()
 
-            navController.popBackStack(navController.graph.startDestinationRoute!!, true)
-            navController.navigate(it)
+            navController.navigate(it) {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 

@@ -43,6 +43,7 @@ import androidx.navigation.NavController
 import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.routes.channel.fetchMessagesFromChannel
+import nac.chat.api.routes.channel.fetchSingleChannel
 import nac.chat.core.model.schemas.Channel
 import nac.chat.core.model.schemas.Message
 import kotlinx.coroutines.launch
@@ -57,6 +58,9 @@ class ForumScreenViewModel : ViewModel() {
             try {
                 isLoading = true
                 error = null
+                // Refresh channel in cache so allowedTags/solutionEnabled are current
+                val freshChannel = fetchSingleChannel(channelId)
+                StoatAPI.channelCache[channelId] = freshChannel
                 val result = fetchMessagesFromChannel(
                     channelId = channelId,
                     limit = 100,
@@ -64,6 +68,9 @@ class ForumScreenViewModel : ViewModel() {
                     sort = "Latest"
                 )
                 result.users?.forEach { user -> user.id?.let { StoatAPI.userCache[it] = user } }
+                result.members?.forEach { member ->
+                    member.id?.server?.let { StoatAPI.members.setMember(it, member) }
+                }
                 val forumPosts = (result.messages ?: emptyList())
                     .filter { it.forumTitle != null && it.replies.isNullOrEmpty() }
                     .sortedByDescending { msg ->

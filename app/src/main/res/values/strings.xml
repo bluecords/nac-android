@@ -224,6 +224,10 @@
     <string name="forum_reply_submit">Reply</string>
     <string name="forum_mark_solution">Mark as Solution</string>
     <string name="forum_unmark_solution">Unmark Solution</string>
+    <string name="delete">Delete</string>
+    <string name="message_actions">Message actions</string>
+    <string name="save">Save</string>
+    <string name="forum_editing">Editing message</string>
     <string name="forum_solution_badge">Solution</string>
     <string name="forum_replies">%1$d replies</string>
     <string name="forum_no_posts">No posts yet. Be the first!</string>

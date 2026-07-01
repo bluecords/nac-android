@@ -1050,7 +1050,10 @@ fun ChannelNavigator(
 ) {
     val scope = rememberCoroutineScope()
 
-    BackHandler(useDrawer && !disableBackHandler) {
+    // Only consume back to close an open drawer. When the drawer is closed, let
+    // back propagate up to the Activity-level handler (moveTaskToBack) so the app
+    // backgrounds instead of looping open/closed between two screens.
+    BackHandler(useDrawer && !disableBackHandler && drawerState?.isOpen == true) {
         toggleDrawer()
     }
 
