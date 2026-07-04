@@ -1,6 +1,8 @@
 package nac.chat.screens.settings
 
 import android.content.Intent
+import android.widget.Toast
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,6 +28,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -40,10 +44,12 @@ import androidx.navigation.NavController
 import nac.chat.BuildConfig
 import nac.chat.R
 import nac.chat.api.StoatAPI
+import nac.chat.api.routes.sponsor.startSponsorCheckout
 import nac.chat.api.settings.FeatureFlags
 import nac.chat.api.settings.LoadedSettings
 import nac.chat.composables.generic.ListHeader
 import nac.chat.persistence.KVStorage
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.androidx.compose.koinViewModel
 
@@ -69,8 +75,23 @@ fun SettingsScreen(
     viewModel: SettingsScreenViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     var showFeedbackDialog by remember { mutableStateOf(false) }
+    var showSponsorDialog by remember { mutableStateOf(false) }
+    var sponsorGiftAmount by remember { mutableStateOf("50") }
+
+    fun startSponsorCheckoutAndOpen(tier: String, amount: Double? = null) {
+        showSponsorDialog = false
+        scope.launch {
+            try {
+                val checkoutUrl = startSponsorCheckout(tier, amount)
+                CustomTabsIntent.Builder().build().launchUrl(context, checkoutUrl.toUri())
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message ?: "Failed to start checkout", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -172,6 +193,29 @@ fun SettingsScreen(
                             .testTag("settings_view_sessions")
                             .clickable {
                                 navController.navigate("settings/sessions")
+                            }
+                    )
+
+                    ListHeader {
+                        Text("Subscriptions")
+                    }
+
+                    ListItem(
+                        headlineContent = {
+                            Text(text = "Sponsor NAC")
+                        },
+                        leadingContent = {
+                            SettingsIcon {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_workspace_premium_24dp__fill),
+                                    contentDescription = null,
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .testTag("settings_view_sponsor_nac")
+                            .clickable {
+                                showSponsorDialog = true
                             }
                     )
 
@@ -444,6 +488,58 @@ fun SettingsScreen(
                             },
                             confirmButton = {
                                 TextButton(onClick = { showFeedbackDialog = false }) {
+                                    Text(stringResource(R.string.cancel))
+                                }
+                            }
+                        )
+                    }
+
+                    if (showSponsorDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showSponsorDialog = false },
+                            title = { Text("Sponsor NAC") },
+                            text = {
+                                Column {
+                                    ListItem(
+                                        headlineContent = { Text("Sponsor — \$2.99/mo") },
+                                        supportingContent = { Text("Longer text posts") },
+                                        modifier = Modifier.clickable {
+                                            startSponsorCheckoutAndOpen("2_99")
+                                        }
+                                    )
+                                    ListItem(
+                                        headlineContent = { Text("Sustainer — \$9.99/mo") },
+                                        supportingContent = { Text("All Sponsor perks + more storage") },
+                                        modifier = Modifier.clickable {
+                                            startSponsorCheckoutAndOpen("9_99")
+                                        }
+                                    )
+                                    ListItem(
+                                        headlineContent = { Text("One-time gift") },
+                                        supportingContent = { Text("\$50 = 6 months of Sustainer, \$100 = a year") }
+                                    )
+                                    OutlinedTextField(
+                                        value = sponsorGiftAmount,
+                                        onValueChange = { sponsorGiftAmount = it },
+                                        label = { Text("Amount (USD)") },
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val amount = sponsorGiftAmount.toDoubleOrNull()
+                                    if (amount != null && amount > 0) {
+                                        startSponsorCheckoutAndOpen("gift", amount)
+                                    } else {
+                                        Toast.makeText(context, "Enter a valid amount", Toast.LENGTH_SHORT).show()
+                                    }
+                                }) {
+                                    Text("Send Gift")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showSponsorDialog = false }) {
                                     Text(stringResource(R.string.cancel))
                                 }
                             }
