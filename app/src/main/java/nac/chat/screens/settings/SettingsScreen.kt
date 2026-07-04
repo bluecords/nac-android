@@ -509,14 +509,14 @@ fun SettingsScreen(
                                     )
                                     ListItem(
                                         headlineContent = { Text("Sustainer — \$9.99/mo") },
-                                        supportingContent = { Text("All Sponsor perks + more storage") },
+                                        supportingContent = { Text("All Sponsor perks + even longer posts") },
                                         modifier = Modifier.clickable {
                                             startSponsorCheckoutAndOpen("9_99")
                                         }
                                     )
                                     ListItem(
                                         headlineContent = { Text("One-time gift") },
-                                        supportingContent = { Text("\$50 = 6 months of Sustainer, \$100 = a year") }
+                                        supportingContent = { Text("\$10 = 1 month of Sustainer perks") }
                                     )
                                     OutlinedTextField(
                                         value = sponsorGiftAmount,
