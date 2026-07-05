@@ -21,9 +21,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,6 +94,8 @@ class ForumScreenViewModel : ViewModel() {
 fun ForumScreen(
     navController: NavController,
     channel: Channel,
+    onToggleDrawer: () -> Unit,
+    useDrawer: Boolean,
     viewModel: ForumScreenViewModel = viewModel(key = channel.id)
 ) {
     val channelId = channel.id ?: return
@@ -101,6 +105,26 @@ fun ForumScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        channel.name ?: stringResource(R.string.unknown),
+                        maxLines = 1
+                    )
+                },
+                navigationIcon = {
+                    if (useDrawer) {
+                        IconButton(onClick = onToggleDrawer) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_menu_24dp),
+                                contentDescription = stringResource(R.string.menu)
+                            )
+                        }
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 navController.navigate("forum/$channelId/new_post")
