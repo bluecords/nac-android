@@ -1081,6 +1081,8 @@ fun ChannelNavigator(
                     ForumScreen(
                         navController = topNav,
                         channel = channel,
+                        onToggleDrawer = toggleDrawer,
+                        useDrawer = useDrawer,
                     )
                 } else {
                     ChannelScreen(
