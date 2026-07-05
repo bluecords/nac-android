@@ -12,6 +12,8 @@ import kotlinx.serialization.Serializable
 
 private const val SPONSOR_CHECKOUT_WEBHOOK =
     "https://automate.bluecords.solutions/webhook/sponsor-checkout"
+private const val SPONSOR_MANAGE_WEBHOOK =
+    "https://automate.bluecords.solutions/webhook/sponsor-manage"
 
 @Serializable
 private data class SponsorCheckoutRequest(
@@ -23,6 +25,16 @@ private data class SponsorCheckoutRequest(
 @Serializable
 private data class SponsorCheckoutResponse(
     val checkout_url: String
+)
+
+@Serializable
+private data class SponsorManageRequest(
+    val nac_user_id: String
+)
+
+@Serializable
+private data class SponsorManageResponse(
+    val portal_url: String
 )
 
 /**
@@ -45,4 +57,25 @@ suspend fun startSponsorCheckout(tier: String, amount: Double? = null): String {
     }.body<String>()
 
     return StoatJson.decodeFromString(SponsorCheckoutResponse.serializer(), response).checkout_url
+}
+
+/**
+ * Resolve the current user's Stripe Billing Portal URL via the n8n
+ * sponsor-manage webhook, for an already-subscribed Sponsor/Sustainer to
+ * update billing or cancel. Same webhook nac-web#96 uses.
+ */
+suspend fun startSponsorManage(): String {
+    val selfId = StoatAPI.selfId ?: throw Exception("Not logged in")
+
+    val response = StoatHttp.post(SPONSOR_MANAGE_WEBHOOK) {
+        contentType(ContentType.Application.Json)
+        setBody(
+            StoatJson.encodeToString(
+                SponsorManageRequest.serializer(),
+                SponsorManageRequest(nac_user_id = selfId)
+            )
+        )
+    }.body<String>()
+
+    return StoatJson.decodeFromString(SponsorManageResponse.serializer(), response).portal_url
 }
