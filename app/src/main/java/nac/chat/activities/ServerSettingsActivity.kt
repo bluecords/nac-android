@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
+import nac.chat.BuildConfig
 import nac.chat.R
 import nac.chat.api.StoatAPI
 import nac.chat.api.buildUserAgent
@@ -44,6 +45,10 @@ class ServerSettingsActivity : ComponentActivity() {
 
         val serverId = intent.getStringExtra(EXTRA_SERVER_ID) ?: run { finish(); return }
         val serverName = intent.getStringExtra(EXTRA_SERVER_NAME) ?: "Server Settings"
+
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.Transparent.toArgb()

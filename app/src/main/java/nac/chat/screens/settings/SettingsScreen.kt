@@ -25,6 +25,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +45,9 @@ import androidx.navigation.NavController
 import nac.chat.BuildConfig
 import nac.chat.R
 import nac.chat.api.StoatAPI
+import nac.chat.api.routes.server.fetchMember
 import nac.chat.api.routes.sponsor.startSponsorCheckout
+import nac.chat.api.routes.sponsor.startSponsorManage
 import nac.chat.api.settings.FeatureFlags
 import nac.chat.api.settings.LoadedSettings
 import nac.chat.composables.generic.ListHeader
@@ -52,6 +55,10 @@ import nac.chat.persistence.KVStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.androidx.compose.koinViewModel
+
+private const val SPONSOR_SERVER_ID = "01KTD1MYDTQ0SSXXH7C93BCHET"
+private const val SPONSOR_ROLE_ID = "01KWN87BF04TY9DACN5KSP9N1R"
+private const val SUSTAINER_ROLE_ID = "01KWN87G54FWJ82GB23DNWCDS9"
 
 class SettingsScreenViewModel(
     private val kvStorage: KVStorage
@@ -80,6 +87,21 @@ fun SettingsScreen(
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showSponsorDialog by remember { mutableStateOf(false) }
     var sponsorGiftAmount by remember { mutableStateOf("50") }
+    var isAlreadySponsor by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val selfId = StoatAPI.selfId ?: return@LaunchedEffect
+        if (!StoatAPI.members.hasMember(SPONSOR_SERVER_ID, selfId)) {
+            try {
+                fetchMember(SPONSOR_SERVER_ID, selfId)
+            } catch (_: Exception) {
+                // Not a member of the NAC server (or a transient fetch failure) --
+                // isAlreadySponsor just stays false, same as the tier-picker default.
+            }
+        }
+        val roles = StoatAPI.members.getMember(SPONSOR_SERVER_ID, selfId)?.roles ?: emptyList()
+        isAlreadySponsor = SPONSOR_ROLE_ID in roles || SUSTAINER_ROLE_ID in roles
+    }
 
     fun startSponsorCheckoutAndOpen(tier: String, amount: Double? = null) {
         showSponsorDialog = false
@@ -89,6 +111,18 @@ fun SettingsScreen(
                 CustomTabsIntent.Builder().build().launchUrl(context, checkoutUrl.toUri())
             } catch (e: Exception) {
                 Toast.makeText(context, e.message ?: "Failed to start checkout", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    fun startSponsorManageAndOpen() {
+        showSponsorDialog = false
+        scope.launch {
+            try {
+                val portalUrl = startSponsorManage()
+                CustomTabsIntent.Builder().build().launchUrl(context, portalUrl.toUri())
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message ?: "Failed to open subscription management", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -494,7 +528,28 @@ fun SettingsScreen(
                         )
                     }
 
-                    if (showSponsorDialog) {
+                    if (showSponsorDialog && isAlreadySponsor) {
+                        AlertDialog(
+                            onDismissRequest = { showSponsorDialog = false },
+                            title = { Text("Manage Sponsorship") },
+                            text = {
+                                Text(
+                                    "You're already a NAC supporter. Manage your subscription " +
+                                        "(update billing details or cancel) through Stripe's secure portal."
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { startSponsorManageAndOpen() }) {
+                                    Text("Manage Subscription")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showSponsorDialog = false }) {
+                                    Text(stringResource(R.string.cancel))
+                                }
+                            }
+                        )
+                    } else if (showSponsorDialog) {
                         AlertDialog(
                             onDismissRequest = { showSponsorDialog = false },
                             title = { Text("Sponsor NAC") },
