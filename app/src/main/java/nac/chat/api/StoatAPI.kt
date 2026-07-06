@@ -43,10 +43,13 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -184,6 +187,22 @@ object StoatAPI {
 
     private var socketCoroutine: Job? = null
 
+    // Guards the check-then-act around socketCoroutine below. Reading and
+    // writing a plain var isn't atomic across dispatchers/threads -- two
+    // near-simultaneous callers (e.g. login's initial connect racing an
+    // ON_RESUME-triggered reconnect) could each see socketCoroutine as
+    // inactive before either has assigned its own job, both slipping past
+    // the guard and each opening a real, separate socket.
+    private val connectMutex = Mutex()
+
+    // Tracks consecutive quick disconnects so a socket that's failing
+    // repeatedly (e.g. a proxy/network hiccup) backs off instead of
+    // reconnecting instantly every time -- same intent as revolt.js's
+    // capped-exponential-backoff Controller, which nac-android never had.
+    private var consecutiveQuickFailures: Int = 0
+    private const val QUICK_FAILURE_WINDOW_MS = 5_000L
+    private const val MAX_BACKOFF_MS = 30_000L
+
     private var openForLocalHydration = true
 
     fun setSessionHeader(token: String) {
@@ -203,29 +222,83 @@ object StoatAPI {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun connectWS() {
-        socketCoroutine = CoroutineScope(Dispatchers.IO).launch {
-            try {
-                withContext(realtimeContext) {
+        // The whole test-and-set (check + backoff calc + job assignment)
+        // happens under connectMutex as one critical section. Splitting the
+        // check and the assignment into separate lock acquisitions would
+        // reopen the exact same race it's meant to close -- another caller
+        // could slip in between them and also see no active job yet.
+        connectMutex.withLock {
+            // A connection attempt is already in flight -- don't tear it down
+            // and start a fresh one underneath it. Without this guard,
+            // overlapping callers (e.g. ON_RESUME firing more than once
+            // before the previous attempt settles to Connected) each
+            // independently call RealtimeSocket.connect(), which closes
+            // whatever socket is currently being established before opening
+            // another -- a self-sustaining reconnect thrash where the socket
+            // never gets a chance to stay up.
+            if (socketCoroutine?.isActive == true) {
+                Log.d("RevoltAPI", "A socket connection attempt is already in progress. Skipping.")
+                return@withLock
+            }
+
+            // Capped exponential backoff, proportional to how many *quick*
+            // failures happened in a row (a connection that stayed up for a
+            // while before dropping doesn't count -- only ones that die
+            // within QUICK_FAILURE_WINDOW_MS of connecting). Without this, a
+            // socket that keeps dying immediately after connecting retries
+            // instantly forever, each attempt re-triggering the expensive
+            // full-channel unread resync on "Reconnected" before the
+            // previous one even lands.
+            val backoffMs = if (consecutiveQuickFailures > 0) {
+                minOf(1000L * (1L shl (consecutiveQuickFailures - 1)), MAX_BACKOFF_MS)
+            } else {
+                0L
+            }
+
+            socketCoroutine = CoroutineScope(Dispatchers.IO).launch {
+                if (backoffMs > 0) {
+                    Log.d(
+                        "RevoltAPI",
+                        "Backing off ${backoffMs}ms before reconnecting " +
+                            "(quick failure #$consecutiveQuickFailures)"
+                    )
+                    delay(backoffMs)
+                }
+
+                val connectStartedAt = System.currentTimeMillis()
+                try {
+                    withContext(realtimeContext) {
+                        try {
+                            RealtimeSocket.connect(sessionToken)
+                        } catch (e: SocketException) {
+                            Log.d(
+                                "RevoltAPI",
+                                "Socket closed, probably no big deal /// " + e.message
+                            )
+                            RealtimeSocket.updateDisconnectionState(DisconnectionState.Disconnected)
+                        } catch (e: Exception) {
+                            Log.e("RevoltAPI", "WebSocket error", e)
+                            RealtimeSocket.updateDisconnectionState(DisconnectionState.Disconnected)
+                        }
+                    }
+                } catch (e: Exception) {
                     try {
-                        RealtimeSocket.connect(sessionToken)
-                    } catch (e: SocketException) {
-                        Log.d("RevoltAPI", "Socket closed, probably no big deal /// " + e.message)
+                        if (e is InterruptedException) {
+                            Log.d("RevoltAPI", "Socket interrupted")
+                        } else {
+                            Log.e("RevoltAPI", "WebSocket error", e)
+                        }
                         RealtimeSocket.updateDisconnectionState(DisconnectionState.Disconnected)
                     } catch (e: Exception) {
-                        Log.e("RevoltAPI", "WebSocket error", e)
-                        RealtimeSocket.updateDisconnectionState(DisconnectionState.Disconnected)
+                        Sentry.captureMessage("Error in socket error handling: $e")
                     }
-                }
-            } catch (e: Exception) {
-                try {
-                    if (e is InterruptedException) {
-                        Log.d("RevoltAPI", "Socket interrupted")
-                    } else {
-                        Log.e("RevoltAPI", "WebSocket error", e)
-                    }
-                    RealtimeSocket.updateDisconnectionState(DisconnectionState.Disconnected)
-                } catch (e: Exception) {
-                    Sentry.captureMessage("Error in socket error handling: $e")
+                } finally {
+                    consecutiveQuickFailures =
+                        if (System.currentTimeMillis() - connectStartedAt < QUICK_FAILURE_WINDOW_MS) {
+                            consecutiveQuickFailures + 1
+                        } else {
+                            0
+                        }
                 }
             }
         }
