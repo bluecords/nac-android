@@ -553,10 +553,6 @@ class ChannelScreenViewModel(
                             StoatAPI.members.setMember(member.id!!.server, member)
                         }
                     }
-
-                    if (markLastAsRead) {
-                        ackMessage(messages.firstOrNull()?.id ?: return@launch)
-                    }
                 }
 
                 val newItems = messages.filter {
@@ -599,6 +595,28 @@ class ChannelScreenViewModel(
 
                 if (!didInitialChannelFetch) {
                     didInitialChannelFetch = true
+                }
+
+                // Mark-as-read is a fire-and-forget side effect -- it must NEVER
+                // block message rendering. It used to be awaited *before*
+                // updateItems() above, so a slow or failing ack (the ack endpoint
+                // 500s when the server's AMQP exchange is unhealthy, and the HTTP
+                // client retries 5x with exponential backoff ~= 30s) left the
+                // channel stuck on the Loading spinner even though the messages had
+                // already arrived. It also early-returned for empty channels, so a
+                // 0-message channel never cleared its spinner at all. Now the
+                // messages are on screen first, and the ack happens in the
+                // background where a failure is invisible to the user.
+                if (markLastAsRead) {
+                    messages.firstOrNull()?.id?.let { newestMessageId ->
+                        viewModelScope.launch {
+                            try {
+                                ackMessage(newestMessageId)
+                            } catch (e: Exception) {
+                                Log.e("ChannelScreenViewModel", "Failed to ack channel", e)
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("ChannelScreenViewModel", "Failed to fetch messages", e)
