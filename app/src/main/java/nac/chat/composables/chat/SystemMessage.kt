@@ -177,8 +177,15 @@ fun SystemMessage(message: Message) {
                 }
 
                 SystemMessageType.USER_JOINED -> {
+                    // `by` (the invite's creator) is optional server-side — absent for joins
+                    // with no inviter, and for any message written before v0.18.0.
+                    val invitedBy = message.system!!.by
                     ChatMarkdown(
-                        stringResource(
+                        if (invitedBy != null) stringResource(
+                            R.string.system_message_user_joined_by,
+                            invitedBy.mention(),
+                            message.system!!.id.mention()
+                        ) else stringResource(
                             R.string.system_message_user_joined,
                             message.system!!.id.mention()
                         ),

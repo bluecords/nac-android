@@ -54,6 +54,8 @@
     <string name="register_email_verification_hint">We\'ll send you a verification email to confirm your account.</string>
     <string name="register_password">Password</string>
     <string name="register_password_rules">Eight or more, common ones are bad. Symbols and numbers recommended.</string>
+    <string name="register_error_missing_invite">NAC is invite only. Open the invite link you were sent to create an account.</string>
+    <string name="register_error_invalid_invite">That invite link is no longer valid. Ask whoever invited you for a new one.</string>
 
     <string name="check_mail">Check your mail!</string>
     <string name="instructions_at_mail">We\'ve sent further instructions to %1$s.</string>
@@ -317,6 +319,7 @@
     <string name="system_message_user_kicked">%1$s has been kicked</string>
     <string name="system_message_user_left">%1$s left</string>
     <string name="system_message_user_joined">%1$s joined</string>
+    <string name="system_message_user_joined_by">%1$s has invited %2$s who has joined the server.</string>
     <string name="system_message_message_pinned">%1$s pinned a message to this channel</string>
     <string name="system_message_message_unpinned">%1$s unpinned a message from this channel</string>
 

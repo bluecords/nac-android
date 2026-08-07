@@ -46,6 +46,7 @@ import nac.chat.api.routes.account.negotiateAuthentication
 import nac.chat.api.routes.account.register
 import nac.chat.api.routes.misc.getRootRoute
 import nac.chat.api.routes.onboard.needsOnboarding
+import nac.chat.callbacks.PendingInvite
 import nac.chat.composables.generic.FormTextField
 import nac.chat.persistence.KVStorage
 import com.hcaptcha.sdk.HCaptcha
@@ -109,9 +110,13 @@ class RegisterDetailsScreenViewModel(
     }
 
     fun doRegistration() {
+        // The server is invite_only: /auth/account/create rejects a body with no invite.
+        // Read the pending code without clearing it — ChatRouterScreen still needs it to
+        // perform the separate POST /invites/<code> that actually joins the server.
         val body = RegistrationBody(
             email = email,
             password = password,
+            invite = PendingInvite.code,
             captcha = captchaToken ?: ""
         )
 
@@ -119,7 +124,12 @@ class RegisterDetailsScreenViewModel(
             val result = register(body)
 
             if (!result.ok) {
-                error = result.unwrapError().type
+                val type = result.unwrapError().type
+                error = when (type) {
+                    "MissingInvite" -> NACApplication.instance.getString(R.string.register_error_missing_invite)
+                    "InvalidInvite" -> NACApplication.instance.getString(R.string.register_error_invalid_invite)
+                    else -> type
+                }
                 return@launch
             }
 
