@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import nac.chat.BuildConfig
 import nac.chat.R
+import nac.chat.callbacks.PendingInvite
 import nac.chat.composables.generic.AnyLink
 import nac.chat.composables.generic.Weblink
 import nac.chat.core.model.data.STOAT_MARKETING
@@ -143,15 +144,20 @@ fun LoginGreetingScreen(navController: NavController) {
                 Text(text = stringResource(R.string.login))
             }
 
-            Spacer(modifier = Modifier.height(5.dp))
+            // Registration is invite only, so the signup entry point exists only for someone
+            // who arrived via an invite link. The server enforces this independently — hiding
+            // the button just stops people reaching a form they cannot complete.
+            if (PendingInvite.code != null) {
+                Spacer(modifier = Modifier.height(5.dp))
 
-            ElevatedButton(
-                onClick = { navController.navigate("register/greeting") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("view_signup_page_button")
-            ) {
-                Text(text = stringResource(R.string.signup))
+                ElevatedButton(
+                    onClick = { navController.navigate("register/greeting") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("view_signup_page_button")
+                ) {
+                    Text(text = stringResource(R.string.signup))
+                }
             }
 
             AnimatedVisibility(showBoringButton) {
